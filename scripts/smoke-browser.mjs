@@ -227,39 +227,27 @@ const main = async () => {
   log('running head:', head)
   if (!head) fail('章ラベル(柱)が描画されていない')
 
-  // 本文端クリックでページ送り (右綴じ: 左端=次)
+  // main#view 基準の左右25%クリックでページ送り/戻し (右綴じ: 左=次 / 右=前)
   await evalJS(`(async () => { await document.querySelector('foliate-view').goTo(0); return 'ok' })()`)
   await delay(1500)
-  const click = async (x) => evalJS(`(() => {
-    const v = document.querySelector('foliate-view')
-    const doc = v.renderer.getContents()[0].doc
-    doc.body.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: ${x}, clientY: 200 }))
-    return 'ok'
-  })()`)
-  const fracBefore = Number(await evalJS(`document.getElementById('slider').value`))
-  await click(5)
-  await delay(1000)
-  const fracAfter = Number(await evalJS(`document.getElementById('slider').value`))
-  log(`edge-click fraction: ${fracBefore} -> ${fracAfter}`)
-  if (!(fracAfter > fracBefore)) fail('左端クリックでページが進まない')
-
-  // 余白(紙の外側)クリックでもページ送り/戻しが効く
-  const clickView = x => evalJS(`(() => {
+  const clickRel = rel => evalJS(`(() => {
     const v = document.getElementById('view')
     const r = v.getBoundingClientRect()
-    v.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + ${x}, clientY: r.top + r.height / 2 }))
+    v.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * ${rel}, clientY: r.top + r.height / 2 }))
     return 'ok'
   })()`)
-  const f0 = Number(await evalJS(`document.getElementById('slider').value`))
-  await clickView(3)
-  await delay(1000)
-  const f1 = Number(await evalJS(`document.getElementById('slider').value`))
-  await evalJS(`(() => { const v=document.getElementById('view'); const r=v.getBoundingClientRect(); v.dispatchEvent(new MouseEvent('click',{bubbles:true, clientX: r.right-3, clientY: r.top+r.height/2})); return 'ok' })()`)
-  await delay(1000)
-  const f2 = Number(await evalJS(`document.getElementById('slider').value`))
-  log(`margin-click fractions: ${f0} -> ${f1} (left) -> ${f2} (right)`)
-  if (!(f1 > f0)) fail('左余白クリックでページが進まない')
-  if (!(f2 < f1)) fail('右余白クリックでページが戻らない')
+  const frac = () => evalJS(`document.getElementById('slider').value`).then(Number)
+  const f0 = await frac()
+  await clickRel(0.1); await delay(1000)
+  const f1 = await frac()
+  await clickRel(0.9); await delay(1000)
+  const f2 = await frac()
+  await clickRel(0.5); await delay(800)
+  const f3 = await frac()
+  log(`view-zone fractions: ${f0} -> ${f1} (left25%) -> ${f2} (right25%) -> ${f3} (center)`)
+  if (!(f1 > f0)) fail('左25%(#view基準)クリックでページが進まない')
+  if (!(f2 < f1)) fail('右25%(#view基準)クリックでページが戻らない')
+  if (f3 !== f2) fail('中央(#view基準)クリックでページが動いてしまう')
 
   // 挿絵ズーム (クリックでライトボックス表示)
   await evalJS(`(async () => { await document.querySelector('foliate-view').goTo(0); return 'ok' })()`)

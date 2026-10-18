@@ -222,11 +222,16 @@ export class Reader extends EventTarget {
       }
     }
 
-    const x = event.clientX
-    const w = win?.innerWidth ?? 0
-    if (!w) return
-    if (x < w * 0.25) this.goLeft()
-    else if (x > w * 0.75) this.goRight()
+    // main#view を基準に左右25%でページ送り/戻し。
+    // iframe 内のクリックは frameElement の位置を足して #view 座標に変換する。
+    const container = this.#container
+    const vr = container?.getBoundingClientRect?.()
+    if (!vr?.width) return
+    const frameRect = win?.frameElement?.getBoundingClientRect?.()
+    const topX = (frameRect ? frameRect.left : vr.left) + event.clientX
+    const rel = (topX - vr.left) / vr.width
+    if (rel < 0.25) this.goLeft()
+    else if (rel > 0.75) this.goRight()
   }
 
   #zoomIllustration(node) {
