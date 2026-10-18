@@ -61,6 +61,12 @@ export const defaultSpec = () => ({
     align: 'center',
     letterSpacing: 0,
   },
+  // 見出し (h1〜h6) の本文比サイズ (em)。
+  // enabled のとき、行ボックスが行送りの整数倍になるよう自動調整して行グリッドに乗せる。
+  heading: {
+    enabled: true,
+    sizes: [2, 1.5, 1.3, 1.15, 1, 1],
+  },
   page: {
     margin: 48,
     gap: 7,
@@ -188,6 +194,7 @@ export const normalizeSpec = input => {
   const p = isPlainObject(input.paragraph) ? input.paragraph : {}
   const pu = isPlainObject(input.punctuation) ? input.punctuation : {}
   const rb = isPlainObject(input.ruby) ? input.ruby : {}
+  const hd = isPlainObject(input.heading) ? input.heading : {}
   const pg = isPlainObject(input.page) ? input.page : {}
   const co = isPlainObject(input.colors) ? input.colors : {}
 
@@ -239,6 +246,14 @@ export const normalizeSpec = input => {
       position: oneOf(rb.position, d.ruby.position, RUBY_POSITIONS, 'ruby.position'),
       align: oneOf(rb.align, d.ruby.align, RUBY_ALIGNS, 'ruby.align'),
       letterSpacing: num(rb.letterSpacing, d.ruby.letterSpacing, { min: -0.2, max: 0.5, label: 'ruby.letterSpacing' }),
+    },
+    heading: {
+      enabled: bool(hd.enabled, d.heading.enabled, { label: 'heading.enabled' }),
+      sizes: (() => {
+        const arr = Array.isArray(hd.sizes) ? hd.sizes : []
+        return d.heading.sizes.map((def, i) =>
+          num(arr[i], def, { min: 0.5, max: 4, label: `heading.sizes[${i}]` }))
+      })(),
     },
     page: {
       margin: num(pg.margin, d.page.margin, { min: 0, max: 400, label: 'page.margin' }),
@@ -381,6 +396,20 @@ export const JSON_SCHEMA = {
         position: { enum: RUBY_POSITIONS },
         align: { enum: RUBY_ALIGNS },
         letterSpacing: { type: 'number', minimum: -0.2, maximum: 0.5 },
+      },
+    },
+    heading: {
+      type: 'object',
+      description: '見出し (h1〜h6) の本文比サイズ',
+      properties: {
+        enabled: { type: 'boolean', description: '行グリッドに乗せる (余白0・行ボックスを整数行に)' },
+        sizes: {
+          type: 'array',
+          items: { type: 'number', minimum: 0.5, maximum: 4 },
+          minItems: 6,
+          maxItems: 6,
+          description: 'h1〜h6 の本文比 (em)',
+        },
       },
     },
     page: {

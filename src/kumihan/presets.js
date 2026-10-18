@@ -21,6 +21,30 @@ const RH_NONE = { enabled: false, single: { slot: 'head', align: 'center' }, spr
 // ページ番号: 脚(下)中央
 const PN_CTR = { enabled: true, single: { slot: 'foot', align: 'center' }, spread: { slot: 'foot', align: 'center' } }
 
+// 見出しサイズ (h1〜h6 の本文比)。行グリッドに乗る。
+const HEAD_STD = { enabled: true, sizes: [2, 1.5, 1.3, 1.15, 1, 1] } // 標準
+const HEAD_MED = { enabled: true, sizes: [1.7, 1.45, 1.25, 1.1, 1, 1] } // やや控えめ
+const HEAD_SMALL = { enabled: true, sizes: [1.5, 1.3, 1.15, 1, 1, 1] } // 文庫など控えめ
+
+// プリセット id ごとの見出しサイズ
+const HEADINGS = {
+  'bunko-vertical': HEAD_SMALL,
+  'shinsho-vertical': HEAD_MED,
+  'tankobon-46-vertical': HEAD_MED,
+  'a5-vertical': HEAD_MED,
+  'iwanami-bunko': HEAD_SMALL,
+  'kodansha-bunko': HEAD_SMALL,
+  'shincho-bunko': HEAD_SMALL,
+  'kadokawa-bunko': HEAD_SMALL,
+  'chikuma-bunko': HEAD_SMALL,
+  'chuokoron-shinsho': HEAD_MED,
+  'aozora-vertical': HEAD_SMALL,
+  'bunko-sepia-frame': HEAD_SMALL,
+  'bunko-horizontal': HEAD_MED,
+  'web-novel-horizontal': HEAD_SMALL,
+  'technical-horizontal': HEAD_STD,
+}
+
 // 判型ごとの基準値:
 //   font.size=px, font.letterSpacing=em, font.lineHeight=倍, page.margin/inset=px,
 //   page.charsPerLine=字, page.linesPerPage=行
@@ -215,8 +239,9 @@ const PRESET_SOURCES = [
 ]
 
 // 既定値へ差分をマージして正規化したプリセット一覧。
+// 見出しサイズは id ごとの HEADINGS を併せてマージする。
 export const PRESETS = PRESET_SOURCES.map(src => {
-  const merged = mergeSpec(defaultSpec(), src)
+  const merged = mergeSpec(defaultSpec(), { heading: HEADINGS[src.id] ?? HEAD_STD, ...src })
   const { spec } = normalizeSpec(merged)
   return spec
 })

@@ -199,6 +199,23 @@ const main = async () => {
           const mb = parseFloat(v.renderer.getAttribute('max-block-size'))
           return Math.abs(der.width - mb) < 2 && Math.abs(der.height - mi) < 2
         })(),
+        headings: (() => {
+          if (!de) return null
+          const doc = de.ownerDocument
+          const bodyCs = getComputedStyle(doc.body)
+          const advance = parseFloat(bodyCs.lineHeight)
+          return [...doc.querySelectorAll('h1,h2,h3,h4,h5,h6')].slice(0, 6).map(h => {
+            const cs = getComputedStyle(h)
+            const box = parseFloat(cs.lineHeight)
+            return {
+              tag: h.localName,
+              fontSize: cs.fontSize,
+              lineHeight: cs.lineHeight,
+              margin: cs.marginBlockStart,
+              lines: +(box / advance).toFixed(3),
+            }
+          })
+        })(),
         lineCharCounts: (() => {
           if (!de) return null
           const doc = de.ownerDocument
@@ -266,6 +283,14 @@ const main = async () => {
       fail(`紙に transform が残っている: ${diag.hostStyle.transform}`)
     if (diag.contentMatchesAttrs === false)
       fail(`本文の実寸が組式属性と一致しない (transform/クランプの疑い): content=${JSON.stringify(diag.content)} renderer=${diag.renderer.maxBlockSize}x${diag.renderer.maxInlineSize}`)
+
+    // 見出しが行グリッドに乗っていること (行ボックスが行送りの整数倍・余白 0)
+    for (const h of diag.headings ?? []) {
+      if (Math.abs(h.lines - Math.round(h.lines)) > 0.02)
+        fail(`見出しが行グリッドに乗っていない: ${h.tag} box=${h.lines}行`)
+      if (h.margin !== '0px')
+        fail(`見出しに余白が残っている: ${h.tag} margin=${h.margin}`)
+    }
 
     // 文字サイズを変えても「一面あたりの字数・行数」が変わらないこと
     const pageMetrics = () => evalJS(`JSON.stringify((() => {

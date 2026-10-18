@@ -227,6 +227,27 @@
         }
       }
     },
+    "heading": {
+      "type": "object",
+      "description": "見出し (h1〜h6) の本文比サイズ",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "行グリッドに乗せる (余白0・行ボックスを整数行に)"
+        },
+        "sizes": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 4
+          },
+          "minItems": 6,
+          "maxItems": 6,
+          "description": "h1〜h6 の本文比 (em)"
+        }
+      }
+    },
     "page": {
       "type": "object",
       "properties": {

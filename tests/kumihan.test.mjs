@@ -77,6 +77,25 @@ test('customCSS は末尾にそのまま付与される', () => {
   assert.match(buildCSS(spec), /body \{ color: red; \}/)
 })
 
+test('見出しサイズ設定が正規化され CSS に反映される', () => {
+  const { spec } = normalizeSpec({ heading: { enabled: true, sizes: [2.5, 2, 1.5, 1, 1, 1] } })
+  assert.deepEqual(spec.heading.sizes, [2.5, 2, 1.5, 1, 1, 1])
+  const css = buildCSS(spec)
+  assert.match(css, /h1 \{\s*font-size: 2\.5em/)
+  assert.match(css, /h1 \{[\s\S]*?margin: 0/)
+  // 行ボックスは行送りの整数倍 (h1 2.5em, lineHeight 1.7 -> 2行 = 3.4em -> line-height 1.36)
+  assert.match(css, /h1 \{[\s\S]*?line-height: 1\.36/)
+
+  // 既定値 (見出しサイズ h1〜h6)
+  const def = buildCSS(normalizeSpec({}).spec)
+  assert.match(def, /h1 \{\s*font-size: 2em/)
+  assert.match(def, /h6 \{\s*font-size: 1em/)
+
+  // enabled:false では見出し正規化を出力しない
+  const off = buildCSS(normalizeSpec({ heading: { enabled: false } }).spec)
+  assert.doesNotMatch(off, /h1 \{\s*font-size:/)
+})
+
 test('toRenderOptions が見開き/単ページを max-column-count へ写す', () => {
   const single = toRenderOptions(normalizeSpec({ page: { spread: 'single', columnCount: 2 } }).spec)
   assert.equal(single['max-column-count'], '1')

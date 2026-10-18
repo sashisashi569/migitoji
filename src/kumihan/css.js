@@ -44,7 +44,7 @@ const trimValue = (trimStart, trimEnd) => {
 export const buildCSS = spec => {
   const v = isVertical(spec.writingMode) ? 'vertical' : 'horizontal'
   const wm = spec.writingMode
-  const { font, paragraph, punctuation, ruby } = spec
+  const { font, paragraph, punctuation, ruby, heading } = spec
   const colors = resolveContentColors(spec)
   const marginInline = paragraph.indent
   const hanging = punctuation.hanging
@@ -124,6 +124,26 @@ export const buildCSS = spec => {
   hr + p, blockquote + p, figure + p, table + p {
     text-indent: 0;
   }`)
+
+  // 見出しを行グリッドに乗せる。UA 既定の行送り・余白・サイズのままだと
+  // 見出しのある面だけ行数が大きくずれるため、行ボックスを lineAdvance の
+  // 整数倍にし、余白を 0 にしてサイズも組式側で固定する。
+  // サイズは組式 heading.sizes (h1〜h6 の本文比) で指定する。
+  if (heading?.enabled !== false) {
+    const sizes = heading?.sizes ?? [2, 1.5, 1.3, 1.15, 1, 1]
+    parts.push(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((tag, i) => {
+      const k = Number.isFinite(sizes[i]) && sizes[i] > 0 ? sizes[i] : 1
+      const lines = Math.max(1, Math.ceil(k / font.lineHeight))
+      const hlh = +((lines * font.lineHeight) / k).toFixed(4)
+      return `${tag} {
+    font-size: ${k}em;
+    line-height: ${hlh};
+    margin: 0;
+    text-indent: 0;
+    font-weight: bold;
+  }`
+    }).join('\n'))
+  }
 
   parts.push(`ruby {
     ruby-position: ${ruby.position};

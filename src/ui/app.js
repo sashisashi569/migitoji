@@ -177,6 +177,8 @@ export class App {
   #frameEnabled = null
   #frameStyle = null
   #frameColor = null
+  #headingEnabled = null
+  #headingSizeInputs = []
   #jsonArea = null
   #jsonNotice = null
   #uiTheme = 'auto'
@@ -243,6 +245,7 @@ export class App {
     body.append(this.#sectionPreset())
     body.append(this.#sectionLayout())
     body.append(this.#sectionType())
+    body.append(this.#sectionHeading())
     body.append(this.#sectionPage())
     body.append(this.#sectionFrame())
     body.append(this.#sectionMarginals())
@@ -382,6 +385,43 @@ export class App {
       section.append(this.#rangeField(r))
     this.#familySelect = family
     this.#alignSelect = align
+    return section
+  }
+
+  #sectionHeading() {
+    const section = el('div', { class: 'section' }, el('h2', {}, '見出し'))
+
+    const enabled = el('input', { type: 'checkbox', id: 'heading-enabled' })
+    this.#headingEnabled = enabled
+    enabled.addEventListener('change', () =>
+      this.#commit(setPath('heading.enabled', enabled.checked), { immediate: true }))
+    section.append(el('div', { class: 'field' },
+      el('label', {}, '行グリッド'),
+      el('div', { class: 'control' },
+        el('label', { class: 'check', for: 'heading-enabled' }, enabled, '見出しを行グリッドに乗せる'))))
+
+    const tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+    this.#headingSizeInputs = []
+    tags.forEach((tag, i) => {
+      const input = el('input', { type: 'range', min: 0.8, max: 3, step: 0.05, value: 1 })
+      const output = el('output')
+      const update = () => {
+        output.textContent = `${Number(input.value).toFixed(2)}em`
+        const sizes = [...(this.#spec.heading?.sizes ?? [2, 1.5, 1.3, 1.15, 1, 1])]
+        sizes[i] = Number(input.value)
+        this.#commit(setPath('heading.sizes', sizes), { immediate: false })
+      }
+      input.addEventListener('input', update)
+      input.addEventListener('change', () => this.#flush())
+      this.#headingSizeInputs.push({ input, output })
+      section.append(el('div', { class: 'field' },
+        el('label', {}, tag),
+        el('div', { class: 'control' }, input),
+        output))
+    })
+
+    section.append(el('p', { class: 'notice' },
+      '見出しの大きさ（本文比）。行ボックスが行送りの整数倍になるよう自動調整され、見出しのある面でも行数がずれません。'))
     return section
   }
 
@@ -539,6 +579,14 @@ export class App {
     if (this.#frameEnabled) this.#frameEnabled.checked = !!spec.page.frame.enabled
     if (this.#frameStyle) this.#frameStyle.value = spec.page.frame.style
     if (this.#frameColor) this.#frameColor.value = spec.page.frame.color || '#888888'
+    if (this.#headingEnabled) this.#headingEnabled.checked = spec.heading?.enabled !== false
+    for (const [i, c] of this.#headingSizeInputs.entries()) {
+      const v = spec.heading?.sizes?.[i]
+      if (v != null && document.activeElement !== c.input) {
+        c.input.value = String(v)
+        c.output.textContent = `${v.toFixed(2)}em`
+      }
+    }
     if (this.#presetSelect) {
       const known = PRESETS.some(p => p.id === spec.id)
       this.#presetSelect.value = known ? spec.id : '__custom__'
