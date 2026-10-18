@@ -4,11 +4,23 @@
 // 判型ごとの一般的な字詰め・行送り・余白の慣例に基づいて構成している。
 //
 // page.charsPerLine / page.linesPerPage が組式の「字詰め × 行数」にあたる。
-// 横組みでは行数が高さ、縦組みでは行数が幅として組版される (css.js を参照)。
+// 横組みでは行が高さ方向、縦組みでは幅方向に積まれる (縦横は css.js を参照)。
 import { normalizeSpec, defaultSpec, mergeSpec } from './spec.js'
 
+// 繰り返し使う要素の雛形 (normalizeSpec が複製するため共有して良い)
+const THEME_AUTO = { theme: 'auto' }
+const THEME_LIGHT = { theme: 'light' }
+const FRAME_OFF = { enabled: false, width: 1, color: null, style: 'solid', radius: 0 }
+// 章ラベル: 縦組みの慣例で「単ページは末尾(外側) / 見開きは中央」
+const RH_END = { enabled: true, single: { slot: 'head', align: 'end' }, spread: { slot: 'head', align: 'center' } }
+const RH_CTR = { enabled: true, single: { slot: 'head', align: 'center' }, spread: { slot: 'head', align: 'center' } }
+const RH_START = { enabled: true, single: { slot: 'head', align: 'start' }, spread: { slot: 'head', align: 'start' } }
+const RH_NONE = { enabled: false, single: { slot: 'head', align: 'center' }, spread: { slot: 'head', align: 'center' } }
+// ページ番号: 脚(下)中央
+const PN_CTR = { enabled: true, single: { slot: 'foot', align: 'center' }, spread: { slot: 'foot', align: 'center' } }
+
 // 判型ごとの基準値:
-//   font.size=px, font.letterSpacing=em, font.lineHeight=倍, page.margin=px,
+//   font.size=px, font.letterSpacing=em, font.lineHeight=倍, page.margin/inset=px,
 //   page.charsPerLine=字, page.linesPerPage=行
 const PRESET_SOURCES = [
   {
@@ -17,7 +29,10 @@ const PRESET_SOURCES = [
     description: 'A6 文庫サイズの標準的な縦組み。字詰め40字・16行。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.7, letterSpacing: 0.02 },
-    page: { margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto' },
+    page: { margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto', inset: 12, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'shinsho-vertical',
@@ -25,7 +40,10 @@ const PRESET_SOURCES = [
     description: '新書サイズの縦組み。字詰め40字・17行で可読性を確保。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.72, letterSpacing: 0.02 },
-    page: { margin: 44, gap: 8, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto' },
+    page: { margin: 44, gap: 8, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto', inset: 12, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'tankobon-46-vertical',
@@ -33,7 +51,10 @@ const PRESET_SOURCES = [
     description: '四六判単行本の縦組み。字詰め42字・17行。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 16, lineHeight: 1.75, letterSpacing: 0.03 },
-    page: { margin: 52, gap: 7, charsPerLine: 42, linesPerPage: 17, columnCount: 2, spread: 'auto' },
+    page: { margin: 52, gap: 7, charsPerLine: 42, linesPerPage: 17, columnCount: 2, spread: 'auto', inset: 16, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'a5-vertical',
@@ -41,7 +62,10 @@ const PRESET_SOURCES = [
     description: '実用書・学術書に多い A5 判の縦組み。字詰め43字・19行。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.68, letterSpacing: 0.01 },
-    page: { margin: 48, gap: 6, charsPerLine: 43, linesPerPage: 19, columnCount: 2, spread: 'auto' },
+    page: { margin: 48, gap: 6, charsPerLine: 43, linesPerPage: 19, columnCount: 2, spread: 'auto', inset: 16, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_START,
+    pageNumber: PN_CTR,
   },
   {
     id: 'iwanami-bunko',
@@ -50,7 +74,10 @@ const PRESET_SOURCES = [
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 14.5, lineHeight: 1.66, letterSpacing: 0.01 },
     paragraph: { indent: 1, align: 'justify', spacingBetween: 0 },
-    page: { margin: 40, gap: 6, charsPerLine: 41, linesPerPage: 16, columnCount: 2, spread: 'auto' },
+    page: { margin: 40, gap: 6, charsPerLine: 41, linesPerPage: 16, columnCount: 2, spread: 'auto', inset: 8, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'kodansha-bunko',
@@ -58,7 +85,10 @@ const PRESET_SOURCES = [
     description: '大衆文芸向けに字間をやや広めに取った講談社文庫風の参考値。字詰め40字・16行。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.7, letterSpacing: 0.025 },
-    page: { margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto' },
+    page: { margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto', inset: 12, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'shincho-bunko',
@@ -66,7 +96,10 @@ const PRESET_SOURCES = [
     description: '行間と字間をゆったり取った新潮文庫風の参考値。字詰め40字・17行。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.76, letterSpacing: 0.03 },
-    page: { margin: 48, gap: 8, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto' },
+    page: { margin: 48, gap: 8, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto', inset: 14, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'kadokawa-bunko',
@@ -74,7 +107,10 @@ const PRESET_SOURCES = [
     description: 'ライト文芸・エンタメ文庫を想定したやや大きめの角川文庫風参考値。字詰め40字・16行。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15.5, lineHeight: 1.72, letterSpacing: 0.02 },
-    page: { margin: 46, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto' },
+    page: { margin: 46, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto', inset: 12, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'chikuma-bunko',
@@ -82,7 +118,10 @@ const PRESET_SOURCES = [
     description: '普遍的な文庫組みを踏襲したちくま文庫風の参考値。字詰め40字・16行。',
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.7, letterSpacing: 0.015 },
-    page: { margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto' },
+    page: { margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto', inset: 12, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'chuokoron-shinsho',
@@ -91,7 +130,10 @@ const PRESET_SOURCES = [
     writingMode: 'vertical-rl',
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.7, letterSpacing: 0.02 },
     customCSS: `h1, h2, h3, h4, h5, h6 { font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif; }`,
-    page: { margin: 46, gap: 7, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto' },
+    page: { margin: 46, gap: 7, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto', inset: 14, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'aozora-vertical',
@@ -101,7 +143,10 @@ const PRESET_SOURCES = [
     font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 16, lineHeight: 1.75, letterSpacing: 0.02, features: '' },
     paragraph: { indent: 1, align: 'justify', hangingPunctuation: 'allow-end last' },
     punctuation: { hanging: true, trimStart: false, trimEnd: false, autospace: 'normal' },
-    page: { margin: 48, gap: 8, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto' },
+    page: { margin: 48, gap: 8, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto', inset: 8, frame: FRAME_OFF },
+    colors: THEME_LIGHT,
+    runningHead: RH_END,
+    pageNumber: PN_CTR,
   },
   {
     id: 'bunko-sepia-frame',
@@ -133,7 +178,10 @@ const PRESET_SOURCES = [
     writingMode: 'horizontal-tb',
     font: { family: "'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif", size: 15, lineHeight: 1.7, letterSpacing: 0.01 },
     paragraph: { indent: 1, align: 'justify' },
-    page: { margin: 48, gap: 7, charsPerLine: 45, linesPerPage: 18, columnCount: 2, spread: 'auto' },
+    page: { margin: 48, gap: 7, charsPerLine: 45, linesPerPage: 18, columnCount: 2, spread: 'auto', inset: 12, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_CTR,
+    pageNumber: PN_CTR,
   },
   {
     id: 'web-novel-horizontal',
@@ -143,7 +191,10 @@ const PRESET_SOURCES = [
     font: { family: "'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif", size: 17, lineHeight: 1.85, letterSpacing: 0, features: '' },
     paragraph: { indent: 0, align: 'start', lineBreak: 'normal', spacingBetween: 0.8, hangingPunctuation: 'none' },
     punctuation: { hanging: false, autospace: 'none' },
-    page: { margin: 40, gap: 6, charsPerLine: 42, linesPerPage: 22, columnCount: 1, spread: 'single' },
+    page: { margin: 40, gap: 6, charsPerLine: 42, linesPerPage: 22, columnCount: 1, spread: 'single', inset: 0, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_NONE,
+    pageNumber: PN_CTR,
   },
   {
     id: 'technical-horizontal',
@@ -154,7 +205,10 @@ const PRESET_SOURCES = [
     paragraph: { indent: 0, align: 'start', lineBreak: 'normal', spacingBetween: 0.6, hangingPunctuation: 'none' },
     punctuation: { hanging: false, autospace: 'none' },
     customCSS: `code, kbd, samp, pre { font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace; font-size: .95em; }`,
-    page: { margin: 48, gap: 6, charsPerLine: 50, linesPerPage: 24, columnCount: 2, spread: 'auto' },
+    page: { margin: 48, gap: 6, charsPerLine: 50, linesPerPage: 24, columnCount: 2, spread: 'auto', inset: 0, frame: FRAME_OFF },
+    colors: THEME_AUTO,
+    runningHead: RH_START,
+    pageNumber: PN_CTR,
   },
 ]
 

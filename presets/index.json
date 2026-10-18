@@ -49,7 +49,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 12,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -62,7 +62,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -138,7 +138,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 12,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -151,7 +151,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -227,7 +227,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 16,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -240,7 +240,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -316,7 +316,7 @@
       "linesPerPage": 19,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 16,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -329,11 +329,11 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "start"
       },
       "spread": {
         "slot": "head",
-        "align": "center"
+        "align": "start"
       }
     },
     "pageNumber": {
@@ -405,7 +405,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 8,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -418,7 +418,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -494,7 +494,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 12,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -507,7 +507,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -583,7 +583,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 14,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -596,7 +596,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -672,7 +672,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 12,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -685,7 +685,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -761,7 +761,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 12,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -774,7 +774,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -850,7 +850,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 14,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -863,7 +863,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -939,7 +939,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 8,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -952,7 +952,7 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "end"
       },
       "spread": {
         "slot": "head",
@@ -971,7 +971,7 @@
       }
     },
     "colors": {
-      "theme": "auto",
+      "theme": "light",
       "background": null,
       "color": null
     },
@@ -1117,7 +1117,7 @@
       "linesPerPage": 18,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 0,
+      "inset": 12,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -1216,7 +1216,7 @@
       }
     },
     "runningHead": {
-      "enabled": true,
+      "enabled": false,
       "single": {
         "slot": "head",
         "align": "center"
@@ -1308,11 +1308,11 @@
       "enabled": true,
       "single": {
         "slot": "head",
-        "align": "center"
+        "align": "start"
       },
       "spread": {
         "slot": "head",
-        "align": "center"
+        "align": "start"
       }
     },
     "pageNumber": {
