@@ -12,7 +12,7 @@ export const WORD_BREAKS = ['normal', 'break-all', 'keep-all', 'break-word']
 export const RUBY_POSITIONS = ['over', 'under', 'inter-character', 'auto']
 export const RUBY_ALIGNS = ['center', 'start', 'space-between', 'space-around']
 export const AUTOSPACE = ['normal', 'none', 'no-autospace', 'ideograph-alpha ideograph-numeric']
-export const SPREAD = ['auto', 'spread', 'single']
+export const SPREAD = ['spread', 'single']
 
 export const isPlainObject = x =>
   typeof x === 'object' && x !== null && !Array.isArray(x)
@@ -79,7 +79,7 @@ export const defaultSpec = () => ({
     charsPerLine: 40,
     linesPerPage: 17,
     columnCount: 2,
-    spread: 'auto',
+    spread: 'spread',
     // 余白: 本文領域の外側に確保する余白 (px)
     inset: 0,
     // 外枠: 本文領域を囲む枠線

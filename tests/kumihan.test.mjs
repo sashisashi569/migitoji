@@ -96,13 +96,22 @@ test('見出しサイズ設定が正規化され CSS に反映される', () => 
   assert.doesNotMatch(off, /h1 \{\s*font-size:/)
 })
 
-test('toRenderOptions が見開き/単ページを max-column-count へ写す', () => {
-  const single = toRenderOptions(normalizeSpec({ page: { spread: 'single', columnCount: 2 } }).spec)
+test('見開き: 縦組みは段数を増やさず面を広げ、横組みは2段', () => {
+  const page = { columnCount: 2, gap: 0 }
+  const single = toRenderOptions(normalizeSpec({ page: { ...page, spread: 'single' } }).spec)
+  const spread = toRenderOptions(normalizeSpec({ page: { ...page, spread: 'spread' } }).spec)
+  // 縦組み: 段数は1のまま、行数方向(max-block-size)が倍、字詰め方向(max-inline-size)は不変
   assert.equal(single['max-column-count'], '1')
-  const spread = toRenderOptions(normalizeSpec({ page: { spread: 'spread', columnCount: 2 } }).spec)
-  assert.equal(spread['max-column-count'], '2')
-  const auto = toRenderOptions(normalizeSpec({ page: { spread: 'auto', columnCount: 2 } }).spec)
-  assert.equal(auto['max-column-count'], '2')
+  assert.equal(spread['max-column-count'], '1', '縦組みの見開きは段数を増やさない')
+  assert.ok(Math.abs(parseFloat(spread['max-block-size']) - parseFloat(single['max-block-size']) * 2) <= 2)
+  assert.equal(spread['max-inline-size'], single['max-inline-size'])
+  // 横組み: 見開きは2段 (max-column-count=2)、行数方向は不変
+  const hSingle = toRenderOptions(normalizeSpec({ writingMode: 'horizontal-tb', page: { ...page, spread: 'single' } }).spec)
+  const hSpread = toRenderOptions(normalizeSpec({ writingMode: 'horizontal-tb', page: { ...page, spread: 'spread' } }).spec)
+  assert.equal(hSingle['max-column-count'], '1')
+  assert.equal(hSpread['max-column-count'], '2', '横組みの見開きは2段')
+  assert.equal(hSpread['max-block-size'], hSingle['max-block-size'])
+  assert.equal(normalizeSpec({}).spec.page.spread, 'spread', '既定は見開き')
   assert.equal(spread.gap.endsWith('%'), true)
   assert.equal(spread.margin.endsWith('px'), true)
 })

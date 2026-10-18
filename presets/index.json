@@ -60,7 +60,7 @@
       "charsPerLine": 40,
       "linesPerPage": 16,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 28,
       "frame": {
         "enabled": false,
@@ -161,7 +161,7 @@
       "charsPerLine": 40,
       "linesPerPage": 17,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 28,
       "frame": {
         "enabled": false,
@@ -262,7 +262,7 @@
       "charsPerLine": 42,
       "linesPerPage": 17,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 32,
       "frame": {
         "enabled": false,
@@ -363,7 +363,7 @@
       "charsPerLine": 43,
       "linesPerPage": 19,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 32,
       "frame": {
         "enabled": false,
@@ -464,7 +464,7 @@
       "charsPerLine": 41,
       "linesPerPage": 16,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 22,
       "frame": {
         "enabled": false,
@@ -565,7 +565,7 @@
       "charsPerLine": 40,
       "linesPerPage": 16,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 28,
       "frame": {
         "enabled": false,
@@ -666,7 +666,7 @@
       "charsPerLine": 40,
       "linesPerPage": 17,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 30,
       "frame": {
         "enabled": false,
@@ -767,7 +767,7 @@
       "charsPerLine": 40,
       "linesPerPage": 16,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 28,
       "frame": {
         "enabled": true,
@@ -868,7 +868,7 @@
       "charsPerLine": 40,
       "linesPerPage": 16,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 28,
       "frame": {
         "enabled": false,
@@ -969,7 +969,7 @@
       "charsPerLine": 40,
       "linesPerPage": 17,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 30,
       "frame": {
         "enabled": false,
@@ -1070,7 +1070,7 @@
       "charsPerLine": 40,
       "linesPerPage": 17,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 20,
       "frame": {
         "enabled": false,
@@ -1171,7 +1171,7 @@
       "charsPerLine": 40,
       "linesPerPage": 16,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 20,
       "frame": {
         "enabled": true,
@@ -1272,7 +1272,7 @@
       "charsPerLine": 45,
       "linesPerPage": 18,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 28,
       "frame": {
         "enabled": false,
@@ -1474,7 +1474,7 @@
       "charsPerLine": 50,
       "linesPerPage": 24,
       "columnCount": 2,
-      "spread": "auto",
+      "spread": "spread",
       "inset": 0,
       "frame": {
         "enabled": false,

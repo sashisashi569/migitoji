@@ -178,50 +178,48 @@ export const buildCSS = spec => {
   return parts.filter(Boolean).join('\n\n')
 }
 
-// 有効な段数（見開き設定を反映）。
-const effectiveColumnCount = page => page.spread === 'single' ? 1
-  : page.spread === 'spread' ? Math.max(2, page.columnCount)
-    : page.columnCount
+// 見開きの倍率。単ページ = 1面ぶん / 見開き = columnCount 面ぶん。
+const spreadFactor = page => page.spread === 'single' ? 1
+  : Math.max(2, page.columnCount)
 
-export const spreadColumnCount = spec => effectiveColumnCount(spec.page)
+// 横組みで紙幅（段数方向）を求めるための段数。縦組みは常に1段なので使わない。
+export const spreadColumnCount = spec => spreadFactor(spec.page)
 
 const clampPx = v => Math.min(8000, Math.max(120, Math.round(v)))
 
 // 縦組みの paginator 属性。通常は紙が縦長（字詰め方向が長い）になる。
-//   縦組み (横長画面) では段数 = --_max-column-count-portrait = 1 なので
 //   面高(インライン長) = 1行の長さ = max-inline-size − gap
-//   面幅(ブロック長)   = 行が積まれる方向 = max-block-size
+//   面幅(ブロック長)   = 行が積まれる方向 = max-block-size（見開きで倍率ぶん広がる）
 //   すなわち max-inline-size が字詰めを、max-block-size が行数を決める。
+//   paginator の多段は縦組みでは縦方向に積まれて見開きにならないため、段数は常に 1 とし、
+//   見開きは面を段数方向に広げる（ワイドな単ページ）。
 const verticalOptions = (page, font) => {
   const lineAdvance = font.size * font.lineHeight
   const charAdvance = font.size * (1 + font.letterSpacing)
   const g = page.gap / 100
   const h = g / (1 - g)
-  const blockCount = Math.max(1, Math.round(effectiveColumnCount(page)))
   const factor = 1 - h
   const inlineSize = (page.charsPerLine * charAdvance) / (factor > 0.05 ? factor : 0.05)
-  const gapPx = h * inlineSize
-  const blockSize = blockCount * (page.linesPerPage * lineAdvance)
-    + (blockCount - 1) * gapPx
+  const blockSize = spreadFactor(page) * page.linesPerPage * lineAdvance
   return {
     flow: 'paginated',
     gap: `${Math.min(45, Math.max(0, Math.round(page.gap)))}%`,
     margin: `${Math.round(page.margin)}px`,
     'max-inline-size': `${clampPx(inlineSize)}px`,
     'max-block-size': `${clampPx(blockSize)}px`,
-    'max-column-count': String(blockCount),
+    'max-column-count': '1',
   }
 }
 
-// 横組みの paginator 属性。紙は横長になる。
-//   max-block-size(高さ) = 行数 × 行送り / max-inline-size(幅) = 字詰め × 字送り。
-//   max-column-count が有効なので、見開き/単ページはそのまま反映される。
+// 横組みの paginator 属性。紙は横長になり、見開きは 2段（max-column-count）で表現する。
+//   max-block-size(高さ) = 行数 × 行送り
+//   max-inline-size(幅)  = 1段ぶんの字詰め（段数ぶんの紙幅は paperSizeOf が掛ける）
 const horizontalOptions = (page, font) => {
   const lineAdvance = font.size * font.lineHeight
   const charAdvance = font.size * (1 + font.letterSpacing)
   const g = page.gap / 100
   const h = g / (1 - g)
-  const blockCount = Math.max(1, Math.round(effectiveColumnCount(page)))
+  const blockCount = spreadFactor(page)
   const factor = 1 - blockCount * h
   const inlineSize = (page.charsPerLine * charAdvance) / (factor > 0.05 ? factor : 0.05)
   const blockSize = page.linesPerPage * lineAdvance
@@ -240,45 +238,29 @@ const horizontalOptions = (page, font) => {
 // 組方向 (writingMode) が「文字送り方向」を、綴じ方向 (binding) が「紙の向き」を決める。
 // binding: auto は組方向から導出 (縦組み=縦綴じ=縦長 / 横組み=横綴じ=横長)。
 //
-// 綴じ方向が組方向の自然な向きと食い違う場合 (例: 縦綴じ + 横組み) は、紙の向きに
-// 合う参照側の紙寸法を保ったままインライン/ブロックを入れ替える。これにより紙は
-// 縦長のまま、文字だけ横組みで流れる。
+// 綴じ方向が組方向の自然な向きと食い違う場合 (例: 縦綴じ + 横組み) は、紙の向きを
+// 保ったままインライン/ブロックを入れ替える。これにより紙は縦長のまま、文字だけ横組みで流れる。
 //
 // paginator は段幅から gap を差し引くため、その分 (h = g/(1-g)) は各 branch で補正。
 export const toRenderOptions = spec => {
   const { page, font } = spec
   const vertical = isVertical(spec.writingMode)
   const binding = spec.binding ?? 'auto'
-  const columnCount = Math.max(1, Math.round(effectiveColumnCount(page)))
 
-  const referenceVertical = binding === 'auto' ? vertical : binding === 'vertical'
-  const ref = referenceVertical ? verticalOptions(page, font) : horizontalOptions(page, font)
-  if (vertical === referenceVertical) return ref
+  // 見開きの表現方法は組方向で異なる:
+  //   横組み = 多段（2段）で表現 / 縦組み = 1段のまま面を広げる（ワイドな単ページ）。
+  const opts = vertical ? verticalOptions(page, font) : horizontalOptions(page, font)
+  const paperVertical = binding === 'auto' ? vertical : binding === 'vertical'
+  if (paperVertical === vertical) return opts
 
-  if (vertical) {
-    // 実際は縦組み / 紙は横綴じ(横長)。参照 (横組み) の紙:
-    //   幅 = max-inline-size × 面数, 高さ = max-block-size。
-    // 縦組みの紙は 幅 = max-block-size, 高さ = max-inline-size。
-    return {
-      flow: 'paginated',
-      gap: `${Math.min(45, Math.max(0, Math.round(page.gap)))}%`,
-      margin: `${Math.round(page.margin)}px`,
-      'max-inline-size': ref['max-block-size'],
-      'max-block-size': `${clampPx(parseFloat(ref['max-inline-size']) * columnCount)}px`,
-      'max-column-count': String(columnCount),
-    }
-  }
-
-  // 実際は横組み / 紙は縦綴じ(縦長)。参照 (縦組み) の紙:
-  //   幅 = max-block-size, 高さ = max-inline-size。
-  // 横組みの紙は 幅 = max-inline-size × 面数, 高さ = max-block-size。
+  // 綴じ方向が組方向と食い違う場合は、紙の向きを保ったままインライン/ブロックを入れ替える。
   return {
     flow: 'paginated',
-    gap: `${page.gap}%`,
-    margin: `${Math.round(page.margin)}px`,
-    'max-inline-size': `${clampPx(parseFloat(ref['max-block-size']) / columnCount)}px`,
-    'max-block-size': ref['max-inline-size'],
-    'max-column-count': String(columnCount),
+    gap: opts.gap,
+    margin: opts.margin,
+    'max-inline-size': opts['max-block-size'],
+    'max-block-size': opts['max-inline-size'],
+    'max-column-count': opts['max-column-count'],
   }
 }
 

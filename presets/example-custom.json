@@ -48,7 +48,7 @@
     "charsPerLine": 40,
     "linesPerPage": 17,
     "columnCount": 2,
-    "spread": "auto",
+    "spread": "spread",
     "inset": 24,
     "frame": { "enabled": true, "width": 2, "color": "#8a5a2b", "style": "double", "radius": 8 }
   },

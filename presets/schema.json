@@ -289,7 +289,6 @@
         },
         "spread": {
           "enum": [
-            "auto",
             "spread",
             "single"
           ]

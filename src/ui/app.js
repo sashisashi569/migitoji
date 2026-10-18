@@ -47,14 +47,14 @@ const getPath = (obj, path) =>
 const paperSizeOf = (spec, slack = 4) => {
   const r = toRenderOptions(spec)
   const vertical = isVertical(spec.writingMode)
-  const n = Math.max(1, Math.round(spreadColumnCount(spec)))
   const g = spec.page.gap / 100
   let w, h
   if (vertical) {
     w = parseFloat(r['max-block-size']) // 行が積まれる方向
     h = parseFloat(r['max-inline-size']) // 1行の長さ
   } else {
-    w = parseFloat(r['max-inline-size']) * n
+    // 横組みは見開きを多段で表現するため、1段ぶんの幅を段数ぶん掛ける。
+    w = parseFloat(r['max-inline-size']) * spreadColumnCount(spec)
     h = parseFloat(r['max-block-size'])
   }
   w += Math.ceil((w * g) / Math.max(0.05, 1 - g)) + slack
@@ -105,7 +105,6 @@ const BINDING_OPTIONS = [
   { value: 'horizontal', label: '横綴じ' },
 ]
 const SPREAD_OPTIONS = [
-  { value: 'auto', label: '自動' },
   { value: 'spread', label: '見開き' },
   { value: 'single', label: '単ページ' },
 ]
@@ -440,7 +439,7 @@ export class App {
     for (const r of RANGES.filter(r => r.path.startsWith('page.')))
       section.append(this.#rangeField(r))
     section.append(el('p', { class: 'notice' },
-      '字詰め＝1行の字数（max-inline-size）、行数＝1面の行数（max-block-size）として、横組み・縦組みとも独立に組版されます。見開き/単ページはこの行数方向の幅で切り替わります。画面が小さい場合は表示できる字数・行数までに制限されます。'))
+      '字詰め＝1行の字数（max-inline-size）、行数＝1面の行数（max-block-size）として、横組み・縦組みとも独立に組版されます。見開きは横組みでは2段、縦組みでは段数を増やさず面を段数方向に広げます（ワイドな単ページ）。画面が小さい場合は表示できる字数・行数までに制限されます。'))
     return section
   }
 
@@ -607,7 +606,7 @@ export class App {
     // ツールバー
     const spreadBtn = $('#btn-spread')
     spreadBtn.setAttribute('aria-pressed', String(spec.page.spread !== 'single'))
-    spreadBtn.textContent = spec.page.spread === 'single' ? '単ページ' : spec.page.spread === 'spread' ? '見開き' : '見開き(自動)'
+    spreadBtn.textContent = spec.page.spread === 'single' ? '単ページ' : '見開き'
     const writingBtn = $('#btn-writing')
     writingBtn.setAttribute('aria-pressed', String(isVertical(spec.writingMode)))
     writingBtn.textContent = isVertical(spec.writingMode) ? '縦書き' : '横書き'
