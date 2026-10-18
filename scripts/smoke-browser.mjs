@@ -121,6 +121,9 @@ const main = async () => {
   const context = tree.contexts?.[0]?.context
   if (!context) { fail('browsing context が取得できません'); return }
 
+  await bidi.send('browsingContext.setViewport',
+    { context, viewport: { width: 1400, height: 1200 } }).catch(() => {})
+
   const evalJS = async expression => {
     const r = await bidi.send('script.evaluate', {
       expression, target: { context }, awaitPromise: true, resultOwnership: 'none',
@@ -197,6 +200,12 @@ const main = async () => {
   log('back to vertical (single)', s)
   if (s.writingMode !== 'vertical-rl') fail(`縦組みへ戻らない: ${s.writingMode}`)
 
+  // 縦組み単ページの面が縦長 (面幅 < 面高=columnWidth) であること
+  const aspect = parseFloat(s.columnWidthPx) / s.rootW
+  log(`vertical single page aspect(H/W)=${aspect.toFixed(3)}`)
+  if (!(aspect > 1.2))
+    fail(`縦組み単ページが縦長でない: H/W=${aspect}`)
+
   // 縦組みで見開きへ切替 → コンテナ幅(=max-block-size)が増えるはず
   const singleBlock = parseFloat(s.maxBlockSize)
   await evalJS(`document.getElementById('btn-spread').click(); 'ok'`)
@@ -205,26 +214,6 @@ const main = async () => {
   log('vertical spread', s)
   if (!(parseFloat(s.maxBlockSize) > singleBlock * 1.5))
     fail(`縦組みの見開きで幅が広がらない: single=${singleBlock} spread=${s.maxBlockSize}`)
-
-  // B: 縦組みの段数を 2 にする (shadow 経由で --_max-column-count-portrait を設定)
-  const aspect1 = parseFloat(s.columnWidthPx) / s.rootH
-  const useB = await evalJS(`(() => {
-    const r = document.querySelector('input[name="radio-page-verticalColumns"][value="2"]')
-    if (!r) return 'no-control'
-    r.click(); return 'clicked'
-  })()`)
-  if (useB !== 'clicked') fail(`段数の切替コントロールが見つからない: ${useB}`)
-  await delay(2000)
-  s = JSON.parse(await snapshot())
-  const aspect2 = parseFloat(s.columnWidthPx) / s.rootH
-  log('vertical columns=2 (B)', s)
-  log(`aspect d=1: ${aspect1.toFixed(3)} -> d=2: ${aspect2.toFixed(3)}`)
-  if (!(aspect2 < aspect1 * 0.8))
-    fail(`B を有効にしても面が縦長にならない: ${aspect1} -> ${aspect2}`)
-  const shotB = await bidi.send('browsingContext.captureScreenshot', { context })
-  const outB = OUT.replace(/\.png$/, '') + '-b.png'
-  await fs.writeFile(outB, Buffer.from(shotB.data, 'base64'))
-  log('screenshot B ->', outB)
 
   bidi.close()
   log(process.exitCode ? 'NG' : 'OK')

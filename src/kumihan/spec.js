@@ -68,9 +68,6 @@ export const defaultSpec = () => ({
     // 横組み: 行数→高さ(max-block-size) / 縦組み: 行数→幅(max-inline-size) に写像される。
     charsPerLine: 40,
     linesPerPage: 17,
-    // 縦組みの面の段数 (1=横長画面でほぼ正方形 / 2以上=縦長)。
-    // foliate-js では面幅 = 面高 − gap となり段数でのみ縦横比を変えられるため。
-    verticalColumns: 1,
     columnCount: 2,
     spread: 'auto',
   },
@@ -217,7 +214,6 @@ export const normalizeSpec = input => {
       gap: num(pg.gap, d.page.gap, { min: 0, max: 30, label: 'page.gap' }),
       charsPerLine: int(pg.charsPerLine, d.page.charsPerLine, { min: 1, max: 120, label: 'page.charsPerLine' }),
       linesPerPage: int(pg.linesPerPage, d.page.linesPerPage, { min: 1, max: 100, label: 'page.linesPerPage' }),
-      verticalColumns: int(pg.verticalColumns, d.page.verticalColumns, { min: 1, max: 4, label: 'page.verticalColumns' }),
       columnCount: int(pg.columnCount, d.page.columnCount, { min: 1, max: 4, label: 'page.columnCount' }),
       spread: oneOf(pg.spread, d.page.spread, SPREAD, 'page.spread'),
     },
@@ -331,8 +327,7 @@ export const JSON_SCHEMA = {
         margin: { type: 'number', minimum: 0, maximum: 400 },
         gap: { type: 'number', minimum: 0, maximum: 30 },
         charsPerLine: { type: 'integer', minimum: 1, maximum: 120, description: '字詰め（1行の字数）' },
-        linesPerPage: { type: 'integer', minimum: 1, maximum: 100, description: '1ページの行数（横組み=高さ / 縦組み=幅 に対応）' },
-        verticalColumns: { type: 'integer', minimum: 1, maximum: 4, description: '縦組みの面の段数（1=正方形寄り / 2以上=縦長）' },
+        linesPerPage: { type: 'integer', minimum: 1, maximum: 100, description: '1ページの行数（行が積まれる方向）' },
         columnCount: { type: 'integer', minimum: 1, maximum: 4 },
         spread: { enum: SPREAD },
       },

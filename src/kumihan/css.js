@@ -167,21 +167,19 @@ export const toRenderOptions = spec => {
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(v)))
 
   if (vertical) {
-    // 縦組み: paginator では (横長画面で) 面幅 = max-inline-size − gap、
-    // 面高(インライン長) = max-inline-size × d − gap となり、d (= --_max-column-count-portrait)
-    // でのみ縦横比を変えられる。d は reader 側で shadow 経由で設定する。
-    // 行数を満たすよう面高を逆算する:
-    //   面幅 = 行数 × 行送り = max-inline-size (1 − d·h)
-    const d = Math.max(1, Math.min(4, Math.round(page.verticalColumns ?? 1)))
-    const columnWidth = page.linesPerPage * lineAdvance
-    const denom = 1 - d * h
-    const inlineSize = columnWidth / (denom > 0.05 ? denom : 0.05)
-    const gapPx = h * d * inlineSize // g/(1-g) × size, size = d·max-inline-size
-    const gapPercent = inlineSize > 0 ? 100 * gapPx / (d * inlineSize + gapPx) : page.gap
-    const blockSize = blockCount * columnWidth + (blockCount - 1) * gapPx
+    // 縦組み (横長画面) では段数 = --_max-column-count-portrait = 1 なので
+    //   面高(インライン長) = 1行の長さ = max-inline-size − gap
+    //   面幅(ブロック長)   = 行が積まれる方向 = max-block-size
+    // となる。すなわち横組みと同様に、max-inline-size が字詰めを、
+    // max-block-size が行数を決める（物理的な縦横は入れ替わるが論理軸は同じ）。
+    const factor = 1 - h
+    const inlineSize = (page.charsPerLine * charAdvance) / (factor > 0.05 ? factor : 0.05)
+    const gapPx = h * inlineSize
+    const blockSize = blockCount * (page.linesPerPage * lineAdvance)
+      + (blockCount - 1) * gapPx
     return {
       flow: 'paginated',
-      gap: `${clamp(gapPercent, 0, 45)}%`,
+      gap: `${clamp(page.gap, 0, 45)}%`,
       margin: `${Math.round(page.margin)}px`,
       'max-inline-size': `${clamp(inlineSize, 120, 8000)}px`,
       'max-block-size': `${clamp(blockSize, 120, 8000)}px`,

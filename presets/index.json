@@ -47,7 +47,6 @@
       "gap": 7,
       "charsPerLine": 40,
       "linesPerPage": 16,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -106,7 +105,6 @@
       "gap": 8,
       "charsPerLine": 40,
       "linesPerPage": 17,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -165,7 +163,6 @@
       "gap": 7,
       "charsPerLine": 42,
       "linesPerPage": 17,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -224,7 +221,6 @@
       "gap": 6,
       "charsPerLine": 43,
       "linesPerPage": 19,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -283,7 +279,6 @@
       "gap": 6,
       "charsPerLine": 41,
       "linesPerPage": 16,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -342,7 +337,6 @@
       "gap": 7,
       "charsPerLine": 40,
       "linesPerPage": 16,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -401,7 +395,6 @@
       "gap": 8,
       "charsPerLine": 40,
       "linesPerPage": 17,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -460,7 +453,6 @@
       "gap": 7,
       "charsPerLine": 40,
       "linesPerPage": 16,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -519,7 +511,6 @@
       "gap": 7,
       "charsPerLine": 40,
       "linesPerPage": 16,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -578,7 +569,6 @@
       "gap": 7,
       "charsPerLine": 40,
       "linesPerPage": 17,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -637,7 +627,6 @@
       "gap": 8,
       "charsPerLine": 40,
       "linesPerPage": 17,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -696,7 +685,6 @@
       "gap": 7,
       "charsPerLine": 45,
       "linesPerPage": 18,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },
@@ -755,7 +743,6 @@
       "gap": 6,
       "charsPerLine": 42,
       "linesPerPage": 22,
-      "verticalColumns": 1,
       "columnCount": 1,
       "spread": "single"
     },
@@ -814,7 +801,6 @@
       "gap": 6,
       "charsPerLine": 50,
       "linesPerPage": 24,
-      "verticalColumns": 1,
       "columnCount": 2,
       "spread": "auto"
     },

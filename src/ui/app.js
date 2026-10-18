@@ -215,15 +215,8 @@ export class App {
     )
     for (const r of RANGES.filter(r => r.path.startsWith('page.')))
       section.append(this.#rangeField(r))
-    section.append(this.#radioField('縦組みの段数', 'page.verticalColumns', [
-      { value: '1', label: '1（ほぼ正方）' },
-      { value: '2', label: '2（縦長）' },
-      { value: '3', label: '3' },
-    ]))
     section.append(el('p', { class: 'notice' },
-      '字詰め・行数が組式にあたる数値です。行数は横組みでは高さ、縦組みでは幅として組版されます（見開き/単ページはこの幅・高さで切替）。画面が小さい場合は表示できる行数までに制限されます。'))
-    section.append(el('p', { class: 'notice' },
-      '縦組みは描画ライブラリの都合で「面幅＝面高−段間」となり、縦横比は段数でのみ変わります。段数=1 でほぼ正方形、2 以上で縦長になります（字詰めは行数に連動し、独立指定はできません）。'))
+      '字詰め＝1行の字数（max-inline-size）、行数＝1面の行数（max-block-size）として、横組み・縦組みとも独立に組版されます。見開き/単ページはこの行数方向の幅で切り替わります。画面が小さい場合は表示できる字数・行数までに制限されます。'))
     return section
   }
 

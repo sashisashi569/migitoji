@@ -1,5 +1,4 @@
 // foliate-view をラップし、組式の適用・見開き/組方向の切替・柱/ノンブルの描画を行う。
-import { setPaginatorVar } from './foliate-shadow.js'
 import '../vendor/foliate-js/view.js'
 import { buildCSS, toRenderOptions, requiresReload } from './kumihan/css.js'
 import { isVertical } from './kumihan/spec.js'
@@ -104,29 +103,10 @@ export class Reader extends EventTarget {
     const opts = toRenderOptions(this.#spec)
     this.#renderOptions = opts
     for (const [name, value] of Object.entries(opts)) renderer.setAttribute(name, value)
-    // 縦組みの段数 (--_max-column-count-portrait) は通常設定できないため shadow 経由で設定
-    this.#applyVerticalColumns()
     renderer.setStyles?.(buildCSS(this.#spec))
     // gap/margin/max-block-size/max-column-count の変更では自動再描画されないため明示的に
     renderer.render?.()
     this.#scheduleVerify()
-  }
-
-  // B: paginator の shadow 内 #top に段数 CSS 変数を設定する。
-  #applyVerticalColumns() {
-    const renderer = this.#view?.renderer
-    if (!renderer || this.#fixed || !this.#spec) return
-    const vertical = isVertical(this.#spec.writingMode)
-    const d = vertical ? this.#verticalColumns() : null
-    const ok = setPaginatorVar(renderer, '--_max-column-count-portrait', d)
-    if (!ok && vertical) {
-      this.#warn('paginator の内部構造が変更されたため、縦組みの段数制御を適用できませんでした（表示は継続します）。')
-    }
-  }
-
-  #verticalColumns() {
-    const d = Number(this.#spec?.page?.verticalColumns ?? 1)
-    return Math.max(1, Math.min(4, Math.round(Number.isFinite(d) ? d : 1)))
   }
 
   // 自己検証: 実際の段幅が paginator の算出式どおりかを確認し、
@@ -148,14 +128,13 @@ export class Reader extends EventTarget {
 
     const g = parseFloat(this.#renderOptions?.gap ?? '0') / 100
     const h = Number.isFinite(g) && g < 1 ? g / (1 - g) : 0
-    let expected
-    if (isVertical(this.#spec.writingMode)) {
-      const d = this.#verticalColumns()
-      expected = rect.height / d - h * rect.height
-    } else {
-      const n = Math.max(1, parseFloat(renderer.getAttribute('max-column-count') || '1'))
-      expected = rect.width / n - h * rect.width
-    }
+    // paginator は 段幅 = size/段数 − gap (size=縦組み:高さ / 横組み:幅, gap=h·size)
+    // 縦組み(横長)の段数は 1、横組みは max-column-count。
+    const size = isVertical(this.#spec.writingMode) ? rect.height : rect.width
+    const n = isVertical(this.#spec.writingMode)
+      ? 1
+      : Math.max(1, parseFloat(renderer.getAttribute('max-column-count') || '1'))
+    const expected = size / n - h * size
     if (expected > 0 && Math.abs(colW - expected) > Math.max(3, expected * 0.06)) {
       this.#warn(`組版の内部計算が想定と一致しません (段幅 ${colW.toFixed(0)}px / 想定 ${expected.toFixed(0)}px)。ライブラリ更新の影響で縦組みの段数制御が無効になっている可能性があります。`)
     }

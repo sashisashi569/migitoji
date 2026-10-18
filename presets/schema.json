@@ -229,13 +229,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100,
-          "description": "1ページの行数（横組み=高さ / 縦組み=幅 に対応）"
-        },
-        "verticalColumns": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 4,
-          "description": "縦組みの面の段数（1=正方形寄り / 2以上=縦長）"
+          "description": "1ページの行数（行が積まれる方向）"
         },
         "columnCount": {
           "type": "integer",

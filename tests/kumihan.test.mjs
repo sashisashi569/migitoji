@@ -88,59 +88,41 @@ test('toRenderOptions が見開き/単ページを max-column-count へ写す', 
   assert.equal(spread.margin.endsWith('px'), true)
 })
 
-test('行数は横組みでは max-block-size、縦組みでは max-inline-size に写る', () => {
-  // gap 0 なら gap 補正が無いので値がそのまま読める
+test('字詰め→max-inline-size / 行数→max-block-size (両組方向で同じ)', () => {
+  // gap 0 なら gap 補正が無く値がそのまま読める
   const common = {
-    writingMode: 'horizontal-tb',
     font: { size: 20, lineHeight: 2, letterSpacing: 0 },
     page: { linesPerPage: 10, charsPerLine: 15, gap: 0, spread: 'single' },
   }
-  // 行送り = 20*2 = 40 → 10行 = 400px / 字詰め = 15字 × 20px = 300px
-  const h = toRenderOptions(normalizeSpec(common).spec)
-  assert.equal(h['max-block-size'], '400px', '横組み: 行数→高さ')
-  assert.equal(h['max-inline-size'], '300px', '横組み: 字詰め→幅')
-
-  const v = toRenderOptions(normalizeSpec({ ...common, writingMode: 'vertical-rl' }).spec)
-  // 縦組みは行数が面の幅（= max-inline-size）になる
-  assert.equal(v['max-inline-size'], '400px', '縦組み: 行数→幅')
-  // 単ページのときコンテナ幅 = 1面の幅 = 行数×行送り
-  assert.equal(v['max-block-size'], '400px', '縦組み: 単ページのコンテナ幅')
+  // 字詰め = 15字 × 20px = 300px / 行数 = 10行 × 行送り40 = 400px
+  for (const writingMode of ['horizontal-tb', 'vertical-rl']) {
+    const o = toRenderOptions(normalizeSpec({ ...common, writingMode }).spec)
+    assert.equal(o['max-inline-size'], '300px', `${writingMode}: 字詰め→max-inline-size`)
+    assert.equal(o['max-block-size'], '400px', `${writingMode}: 行数→max-block-size`)
+  }
 })
 
-test('縦組みはコンテナ幅の設定で見開き/単ページを切り替える', () => {
+test('縦組みは max-block-size(行数方向の幅) で見開き/単ページを切り替える', () => {
   const base = {
     writingMode: 'vertical-rl',
     font: { size: 20, lineHeight: 2, letterSpacing: 0 },
-    page: { linesPerPage: 10, charsPerLine: 15, gap: 10 },
+    page: { linesPerPage: 10, charsPerLine: 15, gap: 0 },
   }
   const single = toRenderOptions(normalizeSpec({ ...base, page: { ...base.page, spread: 'single' } }).spec)
   const spread = toRenderOptions(normalizeSpec({ ...base, page: { ...base.page, spread: 'spread', columnCount: 2 } }).spec)
-  // gap 補正: g=0.1, h=0.1/0.9≈0.1111
-  // 1面幅 = 10*40 = 400, inline = 400/(1-h) = 450
-  assert.equal(single['max-inline-size'], '450px')
   assert.equal(single['max-block-size'], '400px', '単ページ: 1面ぶんの幅')
-  // 見開き = 2列ぶん = inline*(2-h) = 450*1.8889 = 850
-  assert.equal(spread['max-block-size'], '850px', '見開き: 2面ぶんの幅')
-  assert.equal(spread['max-inline-size'], single['max-inline-size'], '面の高さは不変')
-  assert.ok(parseFloat(spread['max-block-size']) > parseFloat(single['max-block-size']))
+  assert.equal(spread['max-block-size'], '800px', '見開き: 2面ぶんの幅')
+  assert.equal(single['max-inline-size'], spread['max-inline-size'], '面の長さ(字詰め)は不変')
 })
 
-test('縦組みの段数 (verticalColumns) で面高が変わり行数は維持される', () => {
-  const base = {
+test('gap があると段幅ぶんを補正する', () => {
+  const withGap = toRenderOptions(normalizeSpec({
     writingMode: 'vertical-rl',
     font: { size: 20, lineHeight: 2, letterSpacing: 0 },
-    page: { linesPerPage: 10, charsPerLine: 20, gap: 10, spread: 'single' },
-  }
-  const d1 = toRenderOptions(normalizeSpec({ ...base, page: { ...base.page, verticalColumns: 1 } }).spec)
-  const d2 = toRenderOptions(normalizeSpec({ ...base, page: { ...base.page, verticalColumns: 2 } }).spec)
-  const h = 0.1 / 0.9
-  // 1面幅 = 10行 × 行送り40 = 400 → 単ページの幅は d に依存しない
-  assert.equal(d1['max-block-size'], '400px')
-  assert.equal(d2['max-block-size'], '400px')
-  // 面高 = 400 / (1 - d·h)
-  assert.equal(d1['max-inline-size'], `${Math.round(400 / (1 - h))}px`)
-  assert.equal(d2['max-inline-size'], `${Math.round(400 / (1 - 2 * h))}px`)
-  assert.ok(parseFloat(d2['max-inline-size']) > parseFloat(d1['max-inline-size']))
+    page: { linesPerPage: 10, charsPerLine: 15, gap: 10, spread: 'single' },
+  }).spec)
+  // 面の長さ = 300 / (1 - h) > 300
+  assert.ok(parseFloat(withGap['max-inline-size']) > 300)
 })
 
 test('requiresReload は組方向の変化のみ true', () => {
