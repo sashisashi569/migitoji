@@ -42,7 +42,9 @@ const getPath = (obj, path) =>
   path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj)
 
 // 組式の紙寸法（本文 + 段間の余裕 + 柱/ノンブル帯。外枠・余白は別途加算）。
-const paperSizeOf = spec => {
+// slack は外枠などの固定余裕。縮小版では slack も比例させて呼ぶことで、
+// 紙寸法が完全に比例し、縮尺によって一行の字数が変わらないようにする。
+const paperSizeOf = (spec, slack = 4) => {
   const r = toRenderOptions(spec)
   const vertical = isVertical(spec.writingMode)
   const n = Math.max(1, Math.round(spreadColumnCount(spec)))
@@ -55,8 +57,8 @@ const paperSizeOf = spec => {
     w = parseFloat(r['max-inline-size']) * n
     h = parseFloat(r['max-block-size'])
   }
-  w += Math.ceil((w * g) / Math.max(0.05, 1 - g)) + 4
-  h += 2 * spec.page.margin + 4
+  w += Math.ceil((w * g) / Math.max(0.05, 1 - g)) + slack
+  h += 2 * spec.page.margin + slack
   return { w, h }
 }
 
@@ -697,11 +699,10 @@ export class App {
 
     const availW = view.clientWidth
     const availH = view.clientHeight
-    // paperSizeOf には縮小しても減らない固定余裕 (+4) があるため、その分を差し引いて
-    // 縮小率を決める (差し引かないと数pxはみ出す)。
-    const pad = 8
+    // 紙寸法は固定余裕(slack)も含めて比例縮小するため、単純な比で縮小率を決められる。
+    const pad = 2 // 端数の丸め分の余裕
     const scale = availW > 0 && availH > 0
-      ? Math.min(1, (availW - pad) / Math.max(1, baseW - pad), (availH - pad) / Math.max(1, baseH - pad))
+      ? Math.min(1, (availW - pad) / baseW, (availH - pad) / baseH)
       : 1
 
     const changed = !this.#renderSpec || Math.abs(scale - this.#scale) > 1e-4
@@ -711,7 +712,7 @@ export class App {
 
     const { page } = spec
     const f = page.frame
-    const { w, h } = paperSizeOf(spec)
+    const { w, h } = paperSizeOf(spec, 4 * scale)
     const inset = page.inset
     const frame = f.enabled ? f.width * 2 : 0
     const paperW = Math.min(availW || Infinity, Math.round(w + 2 * inset + frame))

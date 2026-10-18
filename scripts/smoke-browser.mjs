@@ -199,6 +199,31 @@ const main = async () => {
           const mb = parseFloat(v.renderer.getAttribute('max-block-size'))
           return Math.abs(der.width - mb) < 2 && Math.abs(der.height - mi) < 2
         })(),
+        lineCharCounts: (() => {
+          if (!de) return null
+          const doc = de.ownerDocument
+          const vert = getComputedStyle(de).writingMode.startsWith('vertical')
+          const counts = new Map()
+          const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
+          const range = doc.createRange()
+          let node, n = 0
+          while ((node = walker.nextNode()) && n < 4000) {
+            const text = node.nodeValue
+            if (!text) continue
+            for (let i = 0; i < text.length && n < 4000; i++) {
+              if (!text[i].trim()) continue
+              range.setStart(node, i); range.setEnd(node, i + 1)
+              const r = range.getBoundingClientRect()
+              if (!r.width && !r.height) continue
+              const key = Math.round((vert ? r.left : r.top) / 2) * 2
+              counts.set(key, (counts.get(key) || 0) + 1)
+              n++
+            }
+          }
+          const arr = [...counts.values()].sort((a, b) => b - a)
+          if (!arr.length) return null
+          return { lines: arr.length, max: arr[0], min: arr[arr.length - 1], top: arr.slice(0, 6) }
+        })(),
         renderer: {
           maxInlineSize: v.renderer.getAttribute('max-inline-size'),
           maxBlockSize: v.renderer.getAttribute('max-block-size'),
