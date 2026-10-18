@@ -206,6 +206,79 @@ const main = async () => {
   if (!(aspect > 1.2))
     fail(`縦組み単ページが縦長でない: H/W=${aspect}`)
 
+  // --- 新機能/不具合修正の検証 ---
+  const ui = JSON.parse(await evalJS(`JSON.stringify({
+    sliderDir: document.getElementById('slider').dir,
+    prevLabel: document.getElementById('btn-prev').getAttribute('aria-label'),
+    nextLabel: document.getElementById('btn-next').getAttribute('aria-label'),
+    ticks: document.querySelectorAll('#ticks .tick').length,
+  })`))
+  log('ui', ui)
+  if (ui.sliderDir !== 'rtl') fail(`縦組み(右綴じ)でプログレスバーが RTL でない: ${ui.sliderDir}`)
+  if (ui.prevLabel !== '次へ' || ui.nextLabel !== '前へ')
+    fail(`右綴じの進む/戻る説明が不一致: prev=${ui.prevLabel} next=${ui.nextLabel}`)
+  if (!(ui.ticks > 0)) fail('章のチェックポイントが描画されていない')
+
+  // 章ラベル (柱) が入っている
+  const head = await evalJS(`(() => {
+    const v = document.querySelector('foliate-view')
+    return (v.renderer.heads?.[0]?.textContent) || ''
+  })()`)
+  log('running head:', head)
+  if (!head) fail('章ラベル(柱)が描画されていない')
+
+  // 本文端クリックでページ送り (右綴じ: 左端=次)
+  await evalJS(`(async () => { await document.querySelector('foliate-view').goTo(0); return 'ok' })()`)
+  await delay(1500)
+  const click = async (x) => evalJS(`(() => {
+    const v = document.querySelector('foliate-view')
+    const doc = v.renderer.getContents()[0].doc
+    doc.body.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: ${x}, clientY: 200 }))
+    return 'ok'
+  })()`)
+  const fracBefore = Number(await evalJS(`document.getElementById('slider').value`))
+  await click(5)
+  await delay(1000)
+  const fracAfter = Number(await evalJS(`document.getElementById('slider').value`))
+  log(`edge-click fraction: ${fracBefore} -> ${fracAfter}`)
+  if (!(fracAfter > fracBefore)) fail('左端クリックでページが進まない')
+
+  // 挿絵ズーム (クリックでライトボックス表示)
+  await evalJS(`(async () => { await document.querySelector('foliate-view').goTo(0); return 'ok' })()`)
+  await delay(1500)
+  const imgClick = await evalJS(`(() => {
+    const v = document.querySelector('foliate-view')
+    const img = v.renderer.getContents()[0].doc.querySelector('img')
+    if (!img) return 'no-img'
+    img.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 200, clientY: 200 }))
+    return 'clicked'
+  })()`)
+  await delay(400)
+  const lb = JSON.parse(await evalJS(`JSON.stringify({
+    open: !document.getElementById('lightbox').hidden,
+    hasSrc: !!document.getElementById('lightbox-img').getAttribute('src'),
+  })`))
+  log('illustration zoom', { imgClick, ...lb })
+  if (imgClick !== 'clicked') fail(`挿絵が見つからない: ${imgClick}`)
+  if (!lb.open || !lb.hasSrc) fail('挿絵クリックでズーム表示されない')
+  await evalJS(`document.getElementById('lightbox-close').click(); 'ok'`)
+
+  // 本文カラーテーマ
+  await evalJS(`(() => { const s = document.getElementById('content-theme-select'); s.value = 'dark'; s.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' })()`)
+  await delay(1200)
+  const bodyBg = await evalJS(`(() => {
+    const v = document.querySelector('foliate-view')
+    return getComputedStyle(v.renderer.getContents()[0].doc.body).backgroundColor
+  })()`)
+  log('content theme dark bg:', bodyBg)
+  if (bodyBg !== 'rgb(18, 20, 23)') fail(`本文ダークテーマが適用されない: ${bodyBg}`)
+
+  // UI カラーテーマ
+  await evalJS(`(() => { const s = document.getElementById('ui-theme-select'); s.value = 'dark'; s.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' })()`)
+  const uiTheme = await evalJS(`document.documentElement.dataset.uiTheme`)
+  log('ui theme:', uiTheme)
+  if (uiTheme !== 'dark') fail(`UI ダークテーマが適用されない: ${uiTheme}`)
+
   // 縦組みで見開きへ切替 → コンテナ幅(=max-block-size)が増えるはず
   const singleBlock = parseFloat(s.maxBlockSize)
   await evalJS(`document.getElementById('btn-spread').click(); 'ok'`)

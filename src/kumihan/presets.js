@@ -104,6 +104,29 @@ const PRESET_SOURCES = [
     page: { margin: 48, gap: 8, charsPerLine: 40, linesPerPage: 17, columnCount: 2, spread: 'auto' },
   },
   {
+    id: 'bunko-sepia-frame',
+    name: '文庫判・セピア枠付き',
+    description: '余白・外枠・カラーテーマ・柱位置を定義した例。字詰め40字・16行の縦組み。',
+    writingMode: 'vertical-rl',
+    font: { family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif", size: 15, lineHeight: 1.7, letterSpacing: 0.02 },
+    colors: { theme: 'sepia' },
+    page: {
+      margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, columnCount: 2, spread: 'auto',
+      inset: 20,
+      frame: { enabled: true, width: 2, color: '#b8a06a', style: 'solid', radius: 6 },
+    },
+    runningHead: {
+      enabled: true,
+      single: { slot: 'head', align: 'end' },
+      spread: { slot: 'head', align: 'center' },
+    },
+    pageNumber: {
+      enabled: true,
+      single: { slot: 'foot', align: 'center' },
+      spread: { slot: 'foot', align: 'center' },
+    },
+  },
+  {
     id: 'bunko-horizontal',
     name: '文庫判（横組み）',
     description: '横組みで読む場合の文庫サイズ。字詰め45字・18行。行数は高さに対応。',

@@ -48,9 +48,22 @@
     "charsPerLine": 40,
     "linesPerPage": 17,
     "columnCount": 2,
-    "spread": "auto"
+    "spread": "auto",
+    "inset": 24,
+    "frame": { "enabled": true, "width": 2, "color": "#8a5a2b", "style": "double", "radius": 8 }
+  },
+  "runningHead": {
+    "enabled": true,
+    "single": { "slot": "head", "align": "end" },
+    "spread": { "slot": "head", "align": "center" }
+  },
+  "pageNumber": {
+    "enabled": true,
+    "single": { "slot": "foot", "align": "center" },
+    "spread": { "slot": "foot", "align": "center" }
   },
   "colors": {
+    "theme": "custom",
     "background": "#f4ecd8",
     "color": "#3a3226"
   },

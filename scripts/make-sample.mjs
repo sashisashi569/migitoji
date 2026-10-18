@@ -90,14 +90,23 @@ const paras = n => Array.from({ length: n }, (_, i) =>
   `<p>これは組式を確認するための本文です。第${i + 1}段落。縦書きの行送り、字間、禁則処理、ルビの位置などが読みやすく整っているかを確かめます。句読点、括弧「」、約物の詰めも確認します。</p>`
 ).join('\n')
 
-const chapter = (title, n) => `<?xml version="1.0" encoding="utf-8"?>
+const illustration = `<p class="illust"><img src="illustration.svg" alt="挿絵の確認" width="300" height="200"/></p>`
+
+const chapter = (title, n, withIllustration = false) => `<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="ja">
 <head><meta charset="utf-8"/><title>${title}</title></head>
 <body>
 <h1>${title}</h1>
+${withIllustration ? illustration : ''}
 ${paras(n)}
 <p><ruby>migitoji<rp>(</rp><rt>みぎとじ</rt><rp>)</rp></ruby> の動作確認。</p>
 </body></html>`
+
+const illustrationSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <rect width="300" height="200" fill="#d8c7a8"/>
+  <circle cx="150" cy="96" r="58" fill="#8a5a2b"/>
+  <text x="150" y="104" text-anchor="middle" fill="#ffffff" font-size="22" font-family="sans-serif">挿絵</text>
+</svg>`
 
 const files = [
   ['mimetype', 'application/epub+zip'],
@@ -118,6 +127,7 @@ const files = [
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     <item id="c1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
     <item id="c2" href="chapter2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="illus" href="illustration.svg" media-type="image/svg+xml"/>
   </manifest>
   <spine>
     <itemref idref="c1"/>
@@ -131,7 +141,8 @@ const files = [
 <li><a href="chapter1.xhtml">一章 組式の確認</a></li>
 <li><a href="chapter2.xhtml">二章 見開きの確認</a></li>
 </ol></nav></body></html>`],
-  ['OEBPS/chapter1.xhtml', chapter('一章 組式の確認', 14)],
+  ['OEBPS/illustration.svg', illustrationSvg],
+  ['OEBPS/chapter1.xhtml', chapter('一章 組式の確認', 14, true)],
   ['OEBPS/chapter2.xhtml', chapter('二章 見開きの確認', 14)],
 ]
 

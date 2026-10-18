@@ -87,6 +87,7 @@ export class Reader extends EventTarget {
 
     view.addEventListener('load', ({ detail }) => {
       detail.doc.addEventListener('keydown', e => this.handleKey(e))
+      detail.doc.addEventListener('click', e => this.#onContentClick(e, detail.doc))
       this.dispatchEvent(new CustomEvent('load', { detail }))
     })
 
@@ -170,15 +171,106 @@ export class Reader extends EventTarget {
     await this.setSpec(this.#spec, { reload: true })
   }
 
+  // 章ラベル / ページ番号を、組式の slot(head/foot)・align・単ページ/見開き別設定に従って描画する。
   #updateMarginals() {
     const renderer = this.#view?.renderer
-    if (!renderer?.heads) return
+    if (!renderer?.heads || !this.#spec) return
+    const spread = (renderer.heads.length ?? 1) > 1
+    const headCfg = this.#spec.runningHead?.[spread ? 'spread' : 'single'] ?? {}
+    const numCfg = this.#spec.pageNumber?.[spread ? 'spread' : 'single'] ?? {}
     const { tocItem, pageItem, location } = this.#location ?? {}
-    const head = tocItem?.label ?? ''
-    const foot = pageItem?.label
-      ?? (location ? `${location.current} / ${location.total}` : '')
-    for (const el of renderer.heads) el.textContent = head
-    for (const el of renderer.feet) el.textContent = foot
+    const label = this.#spec.runningHead?.enabled ? (tocItem?.label ?? '') : ''
+    const number = this.#spec.pageNumber?.enabled
+      ? (pageItem?.label ?? (location ? `${location.current} / ${location.total}` : ''))
+      : ''
+
+    for (const el of [...renderer.heads, ...renderer.feet]) el.textContent = ''
+    const place = (cfg, text) => {
+      if (!text || !cfg) return null
+      const arr = cfg.slot === 'foot' ? renderer.feet : renderer.heads
+      for (const el of arr) el.textContent = text
+      return cfg.slot
+    }
+    const labelSlot = place(headCfg, label)
+    const numSlot = place(numCfg, number)
+
+    // align は head/foot 領域ごとにまとめて適用 (data 属性経由で ::part を CSS 制御)
+    const view = this.#view
+    const alignOf = (slot, fallback = 'center') =>
+      (labelSlot === slot ? headCfg.align
+        : numSlot === slot ? numCfg.align : fallback)
+    view.dataset.headAlign = alignOf('head')
+    view.dataset.footAlign = alignOf('foot')
+  }
+
+  // 本文の端クリック/タップでページ送り/戻し (綴り・組方向に従う)。
+  #onContentClick(event, doc) {
+    if (event.defaultPrevented) return
+    const target = event.target
+    if (target?.closest?.('a[href]')) return // リンクは foliate が処理
+    const win = doc.defaultView
+    const sel = win?.getSelection?.()
+    if (sel && !sel.isCollapsed) return // 選択中は無効
+
+    // 挿絵ならズーム
+    const media = target?.closest?.('img, svg')
+    if (media) {
+      const rect = media.getBoundingClientRect?.()
+      if (rect && (rect.width >= 120 || rect.height >= 120)) {
+        this.#zoomIllustration(media)
+        return
+      }
+    }
+
+    const x = event.clientX
+    const w = win?.innerWidth ?? 0
+    if (!w) return
+    if (x < w * 0.25) this.goLeft()
+    else if (x > w * 0.75) this.goRight()
+  }
+
+  #zoomIllustration(node) {
+    let src = ''
+    try {
+      if (node.localName === 'img') {
+        src = node.currentSrc || node.src
+      } else if (node.localName === 'svg') {
+        const xml = new XMLSerializer().serializeToString(node)
+        src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`
+      }
+    } catch (e) { console.warn(e) }
+    if (src) this.dispatchEvent(new CustomEvent('illustration', {
+      detail: { src, alt: node.getAttribute?.('alt') ?? '' },
+    }))
+  }
+
+  // 目次の各項目 (章) の位置を fraction として返す (プログレスバーのチェックポイント用)。
+  tocFractions() {
+    const view = this.#view
+    const book = view?.book
+    const out = []
+    if (!view || !book?.toc?.length) return out
+    const fractions = view.getSectionFractions?.() ?? []
+    const walk = (items, depth) => {
+      for (const item of items) {
+        if (!item?.href || this.#isExternal(item.href)) { /* skip */ }
+        else {
+          try {
+            const resolved = view.resolveNavigation(item.href)
+            const idx = resolved?.index
+            if (idx != null && fractions[idx] != null)
+              out.push({ fraction: Math.min(1, fractions[idx] + Number.EPSILON), depth, label: item.label ?? '' })
+          } catch { /* skip */ }
+        }
+        if (item?.subitems?.length && depth < 8) walk(item.subitems, depth + 1)
+      }
+    }
+    walk(book.toc, 0)
+    return out
+  }
+
+  #isExternal(href) {
+    try { return !!this.#view?.book?.isExternal?.(href) } catch { return false }
   }
 
   #destroyView() {

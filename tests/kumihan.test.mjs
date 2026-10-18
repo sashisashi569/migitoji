@@ -8,7 +8,7 @@ import {
   normalizeSpec, defaultSpec, validateSpec, mergeSpec, JSON_SCHEMA,
   SPEC_VERSION, WRITING_MODES,
 } from '../src/kumihan/spec.js'
-import { buildCSS, toRenderOptions, requiresReload } from '../src/kumihan/css.js'
+import { buildCSS, toRenderOptions, requiresReload, resolveContentColors } from '../src/kumihan/css.js'
 import { PRESETS, resolvePreset, getPreset } from '../src/kumihan/presets.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -131,6 +131,44 @@ test('requiresReload は組方向の変化のみ true', () => {
   const c = normalizeSpec({ writingMode: 'vertical-rl', font: { size: 20 } }).spec
   assert.equal(requiresReload(a, b), true)
   assert.equal(requiresReload(a, c), false)
+})
+
+test('新要素(テーマ/余白/外枠/柱位置)を正規化できる', () => {
+  const { spec } = normalizeSpec({
+    colors: { theme: 'dark' },
+    page: { inset: 12, frame: { enabled: true, width: 3, style: 'double' } },
+    runningHead: { single: { slot: 'foot', align: 'end' }, spread: { slot: 'head', align: 'start' } },
+    pageNumber: { enabled: false },
+  })
+  assert.equal(spec.colors.theme, 'dark')
+  assert.equal(spec.page.inset, 12)
+  assert.deepEqual(spec.page.frame, { enabled: true, width: 3, color: null, style: 'double', radius: 0 })
+  assert.deepEqual(spec.runningHead.single, { slot: 'foot', align: 'end' })
+  assert.deepEqual(spec.runningHead.spread, { slot: 'head', align: 'start' })
+  assert.equal(spec.pageNumber.enabled, false)
+})
+
+test('不正なテーマ/スロットは既定へフォールバック', () => {
+  const { spec } = normalizeSpec({ colors: { theme: 'neon' }, runningHead: { single: { slot: 'left' } } })
+  assert.equal(spec.colors.theme, 'auto')
+  assert.equal(spec.runningHead.single.slot, 'head')
+  assert.equal(spec.runningHead.single.align, 'center')
+})
+
+test('resolveContentColors がテーマと上書きを解決する', () => {
+  assert.equal(resolveContentColors({ colors: { theme: 'auto' } }).background, null)
+  const sepia = resolveContentColors({ colors: { theme: 'sepia' } })
+  assert.equal(sepia.background, '#f4ecd8')
+  assert.equal(sepia.colorScheme, 'light')
+  const custom = resolveContentColors({ colors: { theme: 'dark', background: '#000000' } })
+  assert.equal(custom.background, '#000000')
+  assert.equal(custom.color, '#d8d3c8')
+  assert.equal(custom.colorScheme, 'dark')
+
+  // buildCSS にも反映される
+  const css = buildCSS(normalizeSpec({ colors: { theme: 'dark' } }).spec)
+  assert.match(css, /background:\s*#121417\s*!important/)
+  assert.match(css, /color-scheme:\s*dark/)
 })
 
 test('内蔵プリセットは一意で正規化済み', () => {

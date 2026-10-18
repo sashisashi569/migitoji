@@ -4,6 +4,27 @@
   "title": "migitoji 組式 (Kumihan)",
   "type": "object",
   "additionalProperties": true,
+  "$defs": {
+    "slot": {
+      "type": "object",
+      "properties": {
+        "slot": {
+          "enum": [
+            "head",
+            "foot"
+          ],
+          "description": "head=上/前, foot=下/後"
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        }
+      }
+    }
+  },
   "properties": {
     "version": {
       "type": "integer",
@@ -242,12 +263,92 @@
             "spread",
             "single"
           ]
+        },
+        "inset": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200,
+          "description": "余白（本文領域の外側）px"
+        },
+        "frame": {
+          "type": "object",
+          "description": "外枠",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 40
+            },
+            "color": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "style": {
+              "enum": [
+                "none",
+                "solid",
+                "double",
+                "dashed",
+                "dotted"
+              ]
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    },
+    "runningHead": {
+      "type": "object",
+      "description": "現在の章ラベルの位置",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "single": {
+          "$ref": "#/$defs/slot"
+        },
+        "spread": {
+          "$ref": "#/$defs/slot"
+        }
+      }
+    },
+    "pageNumber": {
+      "type": "object",
+      "description": "ページ番号の位置",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "single": {
+          "$ref": "#/$defs/slot"
+        },
+        "spread": {
+          "$ref": "#/$defs/slot"
         }
       }
     },
     "colors": {
       "type": "object",
       "properties": {
+        "theme": {
+          "enum": [
+            "auto",
+            "light",
+            "dark",
+            "sepia",
+            "custom"
+          ],
+          "default": "auto"
+        },
         "background": {
           "type": [
             "string",

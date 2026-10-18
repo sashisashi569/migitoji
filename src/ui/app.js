@@ -80,11 +80,44 @@ const RANGES = [
   { path: 'font.lineHeight', label: '行送り', min: 1.2, max: 2.4, step: 0.05, unit: '' },
   { path: 'font.letterSpacing', label: '字間', min: -0.05, max: 0.2, step: 0.005, unit: 'em' },
   { path: 'paragraph.indent', label: '字下げ', min: 0, max: 3, step: 0.25, unit: '字' },
-  { path: 'page.margin', label: '天地余白', min: 0, max: 200, step: 2, unit: 'px' },
+  { path: 'page.margin', label: '柱/ノンブル帯', min: 0, max: 200, step: 2, unit: 'px' },
   { path: 'page.gap', label: '段間', min: 0, max: 24, step: 0.5, unit: '%' },
   { path: 'page.charsPerLine', label: '字詰め', min: 8, max: 80, step: 1, unit: '字' },
   { path: 'page.linesPerPage', label: '行数', min: 4, max: 48, step: 1, unit: '行' },
+  { path: 'page.inset', label: '余白(外周)', min: 0, max: 120, step: 2, unit: 'px' },
+  { path: 'page.frame.width', label: '外枠の太さ', min: 0, max: 16, step: 1, unit: 'px' },
+  { path: 'page.frame.radius', label: '外枠の角', min: 0, max: 40, step: 1, unit: 'px' },
 ]
+
+const UI_THEME_OPTIONS = [
+  { value: 'auto', label: '自動（ブラウザ準拠）' },
+  { value: 'light', label: 'ライト' },
+  { value: 'dark', label: 'ダーク' },
+]
+const CONTENT_THEME_OPTIONS = [
+  { value: 'auto', label: '自動（書籍のまま）' },
+  { value: 'light', label: 'ライト' },
+  { value: 'sepia', label: 'セピア' },
+  { value: 'dark', label: 'ダーク' },
+  { value: 'custom', label: 'カスタム' },
+]
+const SLOT_OPTIONS = [
+  { value: 'head', label: '上（柱）' },
+  { value: 'foot', label: '下（脚）' },
+]
+const HEAD_ALIGN_OPTIONS = [
+  { value: 'start', label: '先頭' },
+  { value: 'center', label: '中央' },
+  { value: 'end', label: '末尾' },
+]
+const FRAME_STYLE_OPTIONS = [
+  { value: 'solid', label: '実線' },
+  { value: 'double', label: '二重線' },
+  { value: 'dashed', label: '破線' },
+  { value: 'dotted', label: '点線' },
+]
+
+const UI_THEME_KEY = 'migitoji.ui.v1'
 
 export class App {
   #reader = null
@@ -95,8 +128,14 @@ export class App {
   #presetSelect = null
   #familySelect = null
   #alignSelect = null
+  #contentThemeSelect = null
+  #uiThemeSelect = null
+  #frameEnabled = null
+  #frameStyle = null
+  #frameColor = null
   #jsonArea = null
   #jsonNotice = null
+  #uiTheme = 'auto'
 
   constructor() {
     this.els = {
@@ -113,16 +152,21 @@ export class App {
       dropTarget: $('#drop-target'),
       toast: $('#toast'),
       fileInput: $('#file-input'),
+      lightbox: $('#lightbox'),
+      lightboxImg: $('#lightbox-img'),
+      progressbar: $('#progressbar'),
     }
   }
 
   init() {
     this.#spec = normalizeSpec(loadStoredSpec() ?? getPreset('bunko-vertical') ?? defaultSpec()).spec
+    this.#initUiTheme()
     this.#buildSettings()
     this.#wireChrome()
     this.#wireDropTarget()
     this.#syncControls()
     this.#syncJSON()
+    this.#applyFrame()
 
     const params = new URLSearchParams(location.search)
     const url = params.get('url')
@@ -136,6 +180,7 @@ export class App {
       this.#reader.addEventListener('relocate', ({ detail }) => this.#onRelocate(detail))
       this.#reader.addEventListener('load', () => this.#ensureProgressVisibility())
       this.#reader.addEventListener('layout-warning', ({ detail }) => this.#toast(detail.message, 'error'))
+      this.#reader.addEventListener('illustration', ({ detail }) => this.#showLightbox(detail.src, detail.alt))
     }
     await this.#reader.open(source, this.#spec)
     this.#onOpened()
@@ -150,7 +195,89 @@ export class App {
     body.append(this.#sectionLayout())
     body.append(this.#sectionType())
     body.append(this.#sectionPage())
+    body.append(this.#sectionFrame())
+    body.append(this.#sectionMarginals())
+    body.append(this.#sectionTheme())
     body.append(this.#sectionJSON())
+  }
+
+  #sectionTheme() {
+    const ui = el('select', { id: 'ui-theme-select' })
+    this.#uiThemeSelect = ui
+    for (const o of UI_THEME_OPTIONS) ui.append(el('option', { value: o.value }, o.label))
+    ui.addEventListener('change', () => this.#setUiTheme(ui.value))
+
+    const content = el('select', { id: 'content-theme-select' })
+    this.#contentThemeSelect = content
+    for (const o of CONTENT_THEME_OPTIONS) content.append(el('option', { value: o.value }, o.label))
+    content.addEventListener('change', () => this.#commit(setPath('colors.theme', content.value), { immediate: true }))
+
+    return el('div', { class: 'section' },
+      el('h2', {}, 'カラーテーマ'),
+      el('div', { class: 'field' }, el('label', { for: 'ui-theme-select' }, 'UI'),
+        el('div', { class: 'control' }, ui)),
+      el('div', { class: 'field' }, el('label', { for: 'content-theme-select' }, '本文'),
+        el('div', { class: 'control' }, content)),
+      el('p', { class: 'notice' }, 'UI テーマはコンテンツ以外（ツールバー・パネル等）に適用されます。「自動」ではブラウザのカラーテーマを尊重します。'),
+    )
+  }
+
+  #sectionFrame() {
+    const section = el('div', { class: 'section' }, el('h2', {}, '余白・外枠'))
+
+    const enabled = el('input', { type: 'checkbox', id: 'frame-enabled' })
+    this.#frameEnabled = enabled
+    enabled.addEventListener('change', () => this.#commit(setPath('page.frame.enabled', enabled.checked), { immediate: true }))
+    section.append(el('div', { class: 'field' },
+      el('label', {}, '外枠'),
+      el('div', { class: 'control' },
+        el('label', { class: 'check', for: 'frame-enabled' }, enabled, '表示する'))))
+
+    for (const r of RANGES.filter(r => r.path === 'page.inset' || r.path.startsWith('page.frame.')))
+      section.append(this.#rangeField(r))
+
+    const style = el('select', { id: 'frame-style' })
+    for (const o of FRAME_STYLE_OPTIONS) style.append(el('option', { value: o.value }, o.label))
+    style.addEventListener('change', () => this.#commit(setPath('page.frame.style', style.value), { immediate: true }))
+    this.#frameStyle = style
+    section.append(el('div', { class: 'field' }, el('label', { for: 'frame-style' }, '線種'),
+      el('div', { class: 'control' }, style)))
+
+    const color = el('input', { type: 'color', id: 'frame-color' })
+    color.addEventListener('input', () => this.#commit(setPath('page.frame.color', color.value), { immediate: false }))
+    color.addEventListener('change', () => this.#flush())
+    this.#frameColor = color
+    section.append(el('div', { class: 'field' }, el('label', { for: 'frame-color' }, '色'),
+      el('div', { class: 'control' }, color)))
+    return section
+  }
+
+  #sectionMarginals() {
+    const section = el('div', { class: 'section' },
+      el('h2', {}, '柱・ノンブル'),
+      el('p', { class: 'notice' }, '現在の章ラベルとページ番号の位置を、単ページ / 見開き で別々に指定できます。'),
+    )
+    const add = (title, base) => {
+      section.append(el('h3', { class: 'sub' }, title))
+      for (const mode of [['single', '単ページ'], ['spread', '見開き']]) {
+        const [key, label] = mode
+        section.append(el('div', { class: 'field' }, el('label', {}, label),
+          el('div', { class: 'control' },
+            this.#inlineSelect(`${base}.${key}.slot`, SLOT_OPTIONS),
+            this.#inlineSelect(`${base}.${key}.align`, HEAD_ALIGN_OPTIONS))))
+      }
+    }
+    add('章ラベル', 'runningHead')
+    add('ページ番号', 'pageNumber')
+    return section
+  }
+
+  #inlineSelect(path, options) {
+    const select = el('select', { class: 'mini' })
+    for (const o of options) select.append(el('option', { value: o.value }, o.label))
+    select.addEventListener('change', () => this.#commit(setPath(path, select.value), { immediate: true }))
+    this.#controls.push({ type: 'select', path, input: select })
+    return select
   }
 
   #sectionPreset() {
@@ -324,8 +451,11 @@ export class App {
     clearTimeout(this.#applyTimer)
     this.#applyTimer = null
     storeSpec(this.#spec)
+    this.#applyFrame()
     if (this.#reader?.view) {
-      this.#reader.setSpec(this.#spec).catch(e => this.#error(e))
+      this.#reader.setSpec(this.#spec)
+        .then(() => { this.#updateDirection(); this.#buildTicks() })
+        .catch(e => this.#error(e))
     }
     this.#syncJSON()
   }
@@ -342,8 +472,16 @@ export class App {
       } else if (c.type === 'radio') {
         const v = getPath(spec, c.path)
         c.input.checked = String(v) === String(c.value)
+      } else if (c.type === 'select') {
+        const v = getPath(spec, c.path)
+        if (v != null) c.input.value = String(v)
       }
     }
+    if (this.#contentThemeSelect) this.#contentThemeSelect.value = spec.colors.theme
+    if (this.#uiThemeSelect) this.#uiThemeSelect.value = this.#uiTheme
+    if (this.#frameEnabled) this.#frameEnabled.checked = !!spec.page.frame.enabled
+    if (this.#frameStyle) this.#frameStyle.value = spec.page.frame.style
+    if (this.#frameColor) this.#frameColor.value = spec.page.frame.color || '#888888'
     if (this.#presetSelect) {
       const known = PRESETS.some(p => p.id === spec.id)
       this.#presetSelect.value = known ? spec.id : '__custom__'
@@ -404,8 +542,14 @@ export class App {
     this.els.slider.addEventListener('input', e => this.#reader?.goToFraction(Number(e.target.value)))
 
     document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !this.els.lightbox.hidden) { this.#hideLightbox(); return }
       if (e.target.closest?.('input, textarea, select')) return
       this.#reader?.handleKey(e)
+    })
+
+    $('#lightbox-close').addEventListener('click', () => this.#hideLightbox())
+    this.els.lightbox.addEventListener('click', e => {
+      if (e.target === this.els.lightbox || e.target === this.els.lightboxImg) this.#hideLightbox()
     })
   }
 
@@ -449,6 +593,65 @@ export class App {
     $('#btn-settings').setAttribute('aria-expanded', 'false')
   }
 
+  // ---------- カラーテーマ / 外枠 ----------
+  #initUiTheme() {
+    let v = 'auto'
+    try { v = localStorage.getItem(UI_THEME_KEY) || 'auto' } catch { /* ignore */ }
+    this.#setUiTheme(v, false)
+  }
+
+  #setUiTheme(value, persist = true) {
+    this.#uiTheme = ['auto', 'light', 'dark'].includes(value) ? value : 'auto'
+    if (this.#uiTheme === 'auto') delete document.documentElement.dataset.uiTheme
+    else document.documentElement.dataset.uiTheme = this.#uiTheme
+    if (persist) { try { localStorage.setItem(UI_THEME_KEY, this.#uiTheme) } catch { /* ignore */ } }
+    if (this.#uiThemeSelect) this.#uiThemeSelect.value = this.#uiTheme
+  }
+
+  // 組式 (余白/外枠) を閲覧領域へ反映
+  #applyFrame() {
+    const view = this.els.view
+    if (!view || !this.#spec) return
+    const { page } = this.#spec
+    const f = page.frame
+    view.style.setProperty('--page-inset', `${Math.round(page.inset)}px`)
+    view.style.setProperty('--frame-width', f.enabled ? `${f.width}px` : '0px')
+    view.style.setProperty('--frame-style', f.style)
+    view.style.setProperty('--frame-color', f.color || 'var(--line)')
+    view.style.setProperty('--frame-radius', `${f.radius}px`)
+  }
+
+  // 綴り方向に合わせてプログレスバーと進む/戻るボタンの説明を揃える
+  #updateDirection() {
+    const rtl = this.#reader?.pageDirection === 'rtl'
+    const dir = rtl ? 'rtl' : 'ltr'
+    this.els.slider.dir = dir
+    this.els.ticks.dir = dir
+    const left = $('#btn-prev')
+    const right = $('#btn-next')
+    // 左ボタン = #btn-prev は goLeft()、右ボタン = #btn-next は goRight() を呼ぶ。
+    // 右綴じ(rtl)では左が「次へ」、左綴じ(ltr)では右が「次へ」。
+    const leftLabel = rtl ? '次へ' : '前へ'
+    const rightLabel = rtl ? '前へ' : '次へ'
+    left.title = leftLabel
+    left.setAttribute('aria-label', leftLabel)
+    right.title = rightLabel
+    right.setAttribute('aria-label', rightLabel)
+  }
+
+  // ---------- 挿絵ズーム ----------
+  #showLightbox(src, alt) {
+    if (!src) return
+    this.els.lightboxImg.src = src
+    this.els.lightboxImg.alt = alt || '挿絵'
+    this.els.lightbox.hidden = false
+  }
+
+  #hideLightbox() {
+    this.els.lightbox.hidden = true
+    this.els.lightboxImg.removeAttribute('src')
+  }
+
   // ---------- 書籍表示 ----------
   #onOpened() {
     this.els.dropTarget.classList.add('hidden')
@@ -461,6 +664,8 @@ export class App {
     $('#btn-prev').disabled = false
     $('#btn-next').disabled = false
     this.els.slider.disabled = false
+    this.#applyFrame()
+    this.#updateDirection()
     this.#buildTicks()
     if (this.#reader.isFixedLayout)
       this.#toast('固定レイアウトの書籍です。組式設定は本文に反映されません。', 'warn')
@@ -495,12 +700,26 @@ export class App {
     nav.append(build(toc))
   }
 
+  // 目次の章ごとのチェックポイントを描画（仕切り線のみ、深さで大きさを変える）
   #buildTicks() {
-    this.els.ticks.replaceChildren()
-    try {
-      for (const f of this.#reader.sectionFractions)
-        this.els.ticks.append(el('option', { value: f }))
-    } catch { /* noop */ }
+    const container = this.els.ticks
+    container.replaceChildren()
+    if (!this.#reader) return
+    let marks = []
+    try { marks = this.#reader.tocFractions() } catch (e) { console.warn(e) }
+    if (!marks.length) { container.hidden = true; return }
+    container.hidden = false
+    const seen = new Set()
+    for (const { fraction, depth, label } of marks) {
+      const pos = Math.max(0, Math.min(100, fraction * 100))
+      const key = `${depth}:${pos.toFixed(2)}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      const tick = el('div', { class: `tick depth-${Math.min(depth, 4)}` })
+      tick.style.setProperty('--pos', `${pos}%`)
+      tick.title = label ?? ''
+      container.append(tick)
+    }
   }
 
   #ensureProgressVisibility() {
@@ -509,6 +728,7 @@ export class App {
 
   #onRelocate(detail) {
     const { fraction, location, pageItem, tocItem } = detail
+    this.#updateDirection()
     this.els.slider.value = String(fraction ?? 0)
     const percent = percentFormat.format(fraction ?? 0)
     const loc = pageItem?.label

@@ -35,13 +35,15 @@
   <main id="view" aria-label="本文"></main>
 
   <footer id="progressbar">
-    <button id="btn-prev" class="icon-btn" title="前" aria-label="前へ" disabled>
+    <button id="btn-prev" class="icon-btn" title="前へ" aria-label="前へ" disabled>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
     </button>
-    <input id="slider" type="range" min="0" max="1" step="any" value="0" list="ticks" disabled>
-    <datalist id="ticks"></datalist>
+    <div id="progress-track">
+      <input id="slider" type="range" min="0" max="1" step="any" value="0" disabled>
+      <div id="ticks" aria-hidden="true"></div>
+    </div>
     <output id="progress-label"></output>
-    <button id="btn-next" class="icon-btn" title="次" aria-label="次へ" disabled>
+    <button id="btn-next" class="icon-btn" title="次へ" aria-label="次へ" disabled>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
   </footer>
@@ -81,6 +83,13 @@
       </p>
       <p class="formats">対応形式: EPUB / MOBI / KF8 (AZW3) / FB2 / CBZ / PDF</p>
     </div>
+  </div>
+
+  <div id="lightbox" hidden role="dialog" aria-label="挿絵" aria-modal="true">
+    <img id="lightbox-img" alt="">
+    <button id="lightbox-close" class="icon-btn" aria-label="閉じる">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
   </div>
 
   <div id="toast" role="alert" aria-live="polite" hidden></div>

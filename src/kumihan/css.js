@@ -14,6 +14,25 @@ const fontFaces = fonts => (Array.isArray(fonts) ? fonts : []).map(f => {
   }`
 }).join('\n')
 
+// 本文用の内蔵カラーテーマ (colors.theme)。
+export const CONTENT_THEMES = {
+  light: { background: '#ffffff', color: '#222222', colorScheme: 'light' },
+  sepia: { background: '#f4ecd8', color: '#3a3226', colorScheme: 'light' },
+  dark: { background: '#121417', color: '#d8d3c8', colorScheme: 'dark' },
+}
+
+// colors.* を解決して実際の background/color/color-scheme を返す。
+export const resolveContentColors = spec => {
+  const { colors = {} } = spec
+  const theme = colors.theme && !['auto', 'custom'].includes(colors.theme)
+    ? CONTENT_THEMES[colors.theme] : null
+  return {
+    background: colors.background ?? theme?.background ?? null,
+    color: colors.color ?? theme?.color ?? null,
+    colorScheme: theme?.colorScheme ?? 'light dark',
+  }
+}
+
 const trimValue = (trimStart, trimEnd) => {
   if (trimStart && trimEnd) return 'trim-both'
   if (trimStart) return 'trim-start'
@@ -25,7 +44,8 @@ const trimValue = (trimStart, trimEnd) => {
 export const buildCSS = spec => {
   const v = isVertical(spec.writingMode) ? 'vertical' : 'horizontal'
   const wm = spec.writingMode
-  const { font, paragraph, punctuation, ruby, colors } = spec
+  const { font, paragraph, punctuation, ruby } = spec
+  const colors = resolveContentColors(spec)
   const marginInline = paragraph.indent
   const hanging = punctuation.hanging
     ? (paragraph.hangingPunctuation || 'allow-end last')
@@ -47,7 +67,7 @@ export const buildCSS = spec => {
   }
 
   parts.push(`html {
-    color-scheme: light dark;
+    color-scheme: ${colors.colorScheme};
     writing-mode: ${wm} !important;
     -webkit-writing-mode: ${wm} !important;
   }`)

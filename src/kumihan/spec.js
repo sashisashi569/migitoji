@@ -65,19 +65,42 @@ export const defaultSpec = () => ({
     margin: 48,
     gap: 7,
     // 組式の字詰め・行数 (出版社の組版仕様に対応)。
-    // 横組み: 行数→高さ(max-block-size) / 縦組み: 行数→幅(max-inline-size) に写像される。
+    // 横組み: 行数→高さ / 縦組み: 行数→幅 に写像される。
     charsPerLine: 40,
     linesPerPage: 17,
     columnCount: 2,
     spread: 'auto',
+    // 余白: 本文領域の外側に確保する余白 (px)
+    inset: 0,
+    // 外枠: 本文領域を囲む枠線
+    frame: { enabled: false, width: 1, color: null, style: 'solid', radius: 0 },
+  },
+  // 現在の章ラベルの位置 (単ページ / 見開き で別々に指定)
+  runningHead: {
+    enabled: true,
+    single: { slot: 'head', align: 'center' },
+    spread: { slot: 'head', align: 'center' },
+  },
+  // ページ番号の位置 (単ページ / 見開き で別々に指定)
+  pageNumber: {
+    enabled: true,
+    single: { slot: 'foot', align: 'center' },
+    spread: { slot: 'foot', align: 'center' },
   },
   colors: {
+    // カラーテーマ: auto | light | dark | sepia | custom
+    theme: 'auto',
     background: null,
     color: null,
   },
   fonts: [],
   customCSS: '',
 })
+
+export const CONTENT_THEMES = ['auto', 'light', 'dark', 'sepia', 'custom']
+export const HEAD_SLOTS = ['head', 'foot']
+export const HEAD_ALIGNS = ['start', 'center', 'end']
+export const FRAME_STYLES = ['none', 'solid', 'double', 'dashed', 'dotted']
 
 const warnings = []
 const warn = msg => { warnings.push(msg) }
@@ -126,6 +149,14 @@ const color = (v, def, label) => {
     return def
   }
   return v
+}
+
+const slotOf = (v, def, label) => {
+  const o = isPlainObject(v) ? v : {}
+  return {
+    slot: oneOf(o.slot, def.slot, HEAD_SLOTS, `${label}.slot`),
+    align: oneOf(o.align, def.align, HEAD_ALIGNS, `${label}.align`),
+  }
 }
 
 const normalizeFontFace = (v, i) => {
@@ -216,8 +247,30 @@ export const normalizeSpec = input => {
       linesPerPage: int(pg.linesPerPage, d.page.linesPerPage, { min: 1, max: 100, label: 'page.linesPerPage' }),
       columnCount: int(pg.columnCount, d.page.columnCount, { min: 1, max: 4, label: 'page.columnCount' }),
       spread: oneOf(pg.spread, d.page.spread, SPREAD, 'page.spread'),
+      inset: num(pg.inset, d.page.inset, { min: 0, max: 200, label: 'page.inset' }),
+      frame: (() => {
+        const fr = isPlainObject(pg.frame) ? pg.frame : {}
+        return {
+          enabled: bool(fr.enabled, d.page.frame.enabled, { label: 'page.frame.enabled' }),
+          width: num(fr.width, d.page.frame.width, { min: 0, max: 40, label: 'page.frame.width' }),
+          color: color(fr.color, d.page.frame.color, 'page.frame.color'),
+          style: oneOf(fr.style, d.page.frame.style, FRAME_STYLES, 'page.frame.style'),
+          radius: num(fr.radius, d.page.frame.radius, { min: 0, max: 100, label: 'page.frame.radius' }),
+        }
+      })(),
+    },
+    runningHead: {
+      enabled: bool(input.runningHead?.enabled, d.runningHead.enabled, { label: 'runningHead.enabled' }),
+      single: slotOf(input.runningHead?.single, d.runningHead.single, 'runningHead.single'),
+      spread: slotOf(input.runningHead?.spread, d.runningHead.spread, 'runningHead.spread'),
+    },
+    pageNumber: {
+      enabled: bool(input.pageNumber?.enabled, d.pageNumber.enabled, { label: 'pageNumber.enabled' }),
+      single: slotOf(input.pageNumber?.single, d.pageNumber.single, 'pageNumber.single'),
+      spread: slotOf(input.pageNumber?.spread, d.pageNumber.spread, 'pageNumber.spread'),
     },
     colors: {
+      theme: oneOf(co.theme, d.colors.theme, CONTENT_THEMES, 'colors.theme'),
       background: color(co.background, d.colors.background, 'colors.background'),
       color: color(co.color, d.colors.color, 'colors.color'),
     },
@@ -266,6 +319,15 @@ export const JSON_SCHEMA = {
   title: 'migitoji 組式 (Kumihan)',
   type: 'object',
   additionalProperties: true,
+  $defs: {
+    slot: {
+      type: 'object',
+      properties: {
+        slot: { enum: HEAD_SLOTS, description: 'head=上/前, foot=下/後' },
+        align: { enum: HEAD_ALIGNS },
+      },
+    },
+  },
   properties: {
     version: { type: 'integer', const: SPEC_VERSION },
     id: { type: 'string' },
@@ -330,11 +392,42 @@ export const JSON_SCHEMA = {
         linesPerPage: { type: 'integer', minimum: 1, maximum: 100, description: '1ページの行数（行が積まれる方向）' },
         columnCount: { type: 'integer', minimum: 1, maximum: 4 },
         spread: { enum: SPREAD },
+        inset: { type: 'number', minimum: 0, maximum: 200, description: '余白（本文領域の外側）px' },
+        frame: {
+          type: 'object',
+          description: '外枠',
+          properties: {
+            enabled: { type: 'boolean' },
+            width: { type: 'number', minimum: 0, maximum: 40 },
+            color: { type: ['string', 'null'] },
+            style: { enum: FRAME_STYLES },
+            radius: { type: 'number', minimum: 0, maximum: 100 },
+          },
+        },
+      },
+    },
+    runningHead: {
+      type: 'object',
+      description: '現在の章ラベルの位置',
+      properties: {
+        enabled: { type: 'boolean' },
+        single: { $ref: '#/$defs/slot' },
+        spread: { $ref: '#/$defs/slot' },
+      },
+    },
+    pageNumber: {
+      type: 'object',
+      description: 'ページ番号の位置',
+      properties: {
+        enabled: { type: 'boolean' },
+        single: { $ref: '#/$defs/slot' },
+        spread: { $ref: '#/$defs/slot' },
       },
     },
     colors: {
       type: 'object',
       properties: {
+        theme: { enum: CONTENT_THEMES, default: 'auto' },
         background: { type: ['string', 'null'] },
         color: { type: ['string', 'null'] },
       },
