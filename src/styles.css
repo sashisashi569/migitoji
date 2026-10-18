@@ -61,6 +61,7 @@ body {
 
 #app {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--toolbar-h) 1fr var(--footer-h);
   height: 100dvh;
   width: 100vw;
@@ -131,11 +132,10 @@ body {
   /* 組式 (page.inset / page.frame) から JS で設定。
      紙(foliate-view)は「本文(組式サイズ) + 余白」の寸法を持ち、
      余白は本文から外側に広がる (本文は潰れない)。
-     画面に収まらない場合は --paper-scale で一様に縮小表示する
-     (再組版しないので一面あたりの文字数・行数は変わらない)。 */
+     画面に収まらない場合は、字詰め・行数を保ったまま寸法を比例縮小した
+     組式で組み直すため、ここでは transform を使わない。 */
   --paper-w: 100%;
   --paper-h: 100%;
-  --paper-scale: 1;
   --frame-width: 0px;
   --frame-color: var(--line);
   --frame-style: solid;
@@ -150,8 +150,6 @@ body {
   border: var(--frame-width) var(--frame-style) var(--frame-color);
   border-radius: var(--frame-radius);
   box-shadow: 0 0 0 1px var(--line), 0 2px 24px var(--paper-shadow);
-  transform: scale(var(--paper-scale, 1));
-  transform-origin: center center;
 }
 foliate-view::part(head), foliate-view::part(foot) {
   color: var(--muted);
@@ -400,4 +398,17 @@ input[type="color"] {
 @media (max-width: 600px) {
   #book-title { text-align: start; }
   .field > label { flex-basis: 5.5em; }
+}
+
+/* 狭い画面: ツールバーが横にはみ出してボタンが画面外に出ないように詰める */
+@media (max-width: 520px) {
+  #toolbar { gap: 4px; padding: 0 4px; }
+  #toolbar .group { gap: 2px; }
+  .icon-btn { width: 30px; height: 30px; }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .text-btn { padding: 5px 7px; font-size: 12px; }
+  #book-title { font-size: 12px; }
+}
+@media (max-width: 380px) {
+  #book-title { display: none; }
 }

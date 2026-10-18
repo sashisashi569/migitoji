@@ -191,6 +191,14 @@ const main = async () => {
         paperVar: { w: vs.getPropertyValue('--paper-w').trim(), h: vs.getPropertyValue('--paper-h').trim() },
         paperScale: Number(vs.getPropertyValue('--paper-scale').trim() || '1'),
         content: der ? { w: Math.round(der.width), h: Math.round(der.height) } : null,
+        contentMatchesAttrs: (() => {
+          if (!de) return null
+          const vert = getComputedStyle(de).writingMode.startsWith('vertical')
+          if (!vert) return null
+          const mi = parseFloat(v.renderer.getAttribute('max-inline-size'))
+          const mb = parseFloat(v.renderer.getAttribute('max-block-size'))
+          return Math.abs(der.width - mb) < 2 && Math.abs(der.height - mi) < 2
+        })(),
         renderer: {
           maxInlineSize: v.renderer.getAttribute('max-inline-size'),
           maxBlockSize: v.renderer.getAttribute('max-block-size'),
@@ -201,7 +209,7 @@ const main = async () => {
         writingMode: de ? getComputedStyle(de).writingMode : null,
         hostStyle: (() => {
           const cs = getComputedStyle(v)
-          return { width: cs.width, maxWidth: cs.maxWidth, height: cs.height, maxHeight: cs.maxHeight, display: cs.display, position: cs.position }
+          return { width: cs.width, maxWidth: cs.maxWidth, height: cs.height, maxHeight: cs.maxHeight, display: cs.display, position: cs.position, transform: cs.transform }
         })(),
         viewStyle: (() => {
           const cs = getComputedStyle(view)
@@ -226,17 +234,13 @@ const main = async () => {
     if (!(diag.renderer.pages > 1))
       fail(`ページ数が1以下: ${diag.renderer.pages}`)
 
-    // 組式の紙が閲覧領域より大きい場合は一様縮小されていること
-    const layoutW = parseFloat(diag.paperVar.w)
-    const layoutH = parseFloat(diag.paperVar.h)
-    if (layoutW > diag.view.w + 1 || layoutH > diag.view.h + 1) {
-      if (!(diag.paperScale < 1)) fail(`紙が画面より大きいのに縮小されていない: scale=${diag.paperScale}`)
-      // 縮小後も縦横比が保たれ、閲覧領域に収まること
-      if (Math.abs(diag.paper.w / layoutW - diag.paper.h / layoutH) > 0.01)
-        fail(`縮小で縦横比が崩れている: ${diag.paper.w}x${diag.paper.h} (layout ${layoutW}x${layoutH})`)
-    } else if (diag.paperScale !== 1) {
-      fail(`紙が収まるのに縮小されている: scale=${diag.paperScale}`)
-    }
+    // 紙に transform を使わず、本文の実寸が組式属性どおりであること。
+    // (transform: scale は paginator の getBoundingClientRect 計測を狂わせ、
+    //  小さい画面で開いたときにテキストが崩れる)
+    if (diag.hostStyle.transform !== 'none')
+      fail(`紙に transform が残っている: ${diag.hostStyle.transform}`)
+    if (diag.contentMatchesAttrs === false)
+      fail(`本文の実寸が組式属性と一致しない (transform/クランプの疑い): content=${JSON.stringify(diag.content)} renderer=${diag.renderer.maxBlockSize}x${diag.renderer.maxInlineSize}`)
 
     // 文字サイズを変えても「一面あたりの字数・行数」が変わらないこと
     const pageMetrics = () => evalJS(`JSON.stringify((() => {
@@ -265,6 +269,35 @@ const main = async () => {
       fail(`文字サイズ変更で字詰めが変わる: ${m0.chars.toFixed(1)} -> ${m1.chars.toFixed(1)}`)
     if (rel(m0.lines, m1.lines) > 0.02)
       fail(`文字サイズ変更で行数が変わる: ${m0.lines.toFixed(1)} -> ${m1.lines.toFixed(1)}`)
+
+    // リサイズ（回転・ウィンドウ変更相当）でも再レイアウトされ、収まったままであること
+    const newW = Math.max(viewportSize?.width ?? 390, 360) + 80
+    await bidi.send('browsingContext.setViewport', {
+      context,
+      viewport: { width: newW, height: viewportSize?.height ?? 700 },
+      ...(DPR ? { devicePixelRatio: DPR } : {}),
+    }).catch(e => log('setViewport failed:', e.message))
+    await delay(1200)
+    const resized = JSON.parse(await evalJS(`JSON.stringify((() => {
+      const v = document.querySelector('foliate-view')
+      const view = document.getElementById('view')
+      const r = v.getBoundingClientRect(), vr = view.getBoundingClientRect()
+      const doc = v.renderer.getContents()[0].doc
+      const cs = doc.defaultView.getComputedStyle(doc.body)
+      const fs = parseFloat(cs.fontSize), ls = parseFloat(cs.letterSpacing) || 0
+      const inlinePx = parseFloat(v.renderer.getAttribute('max-inline-size'))
+      return {
+        w: Math.round(r.width), h: Math.round(r.height), vw: Math.round(vr.width), vh: Math.round(vr.height),
+        inView: r.left >= vr.left - 1 && r.right <= vr.right + 1 && r.top >= vr.top - 1 && r.bottom <= vr.bottom + 1,
+        transform: getComputedStyle(v).transform,
+        chars: inlinePx / (fs + ls),
+      }
+    })())`))
+    log('after resize', { w: resized.w, h: resized.h, vw: resized.vw, vh: resized.vh, inView: resized.inView, transform: resized.transform, chars: +resized.chars.toFixed(1) })
+    if (!resized.inView) fail(`リサイズ後に紙がはみ出す: ${JSON.stringify(resized)}`)
+    if (resized.transform !== 'none') fail(`リサイズ後に transform が付いた: ${resized.transform}`)
+    if (rel(m0.chars, resized.chars) > 0.03)
+      fail(`リサイズで字詰めが変わる: ${m0.chars.toFixed(1)} -> ${resized.chars.toFixed(1)}`)
 
     // ページ送り/戻し (main#view 基準の左右25%)
     await evalJS(`(async () => { await document.querySelector('foliate-view').goTo(0); return 'ok' })()`)

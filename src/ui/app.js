@@ -41,6 +41,43 @@ const setPath = (path, value) => {
 const getPath = (obj, path) =>
   path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj)
 
+// 組式の紙寸法（本文 + 段間の余裕 + 柱/ノンブル帯。外枠・余白は別途加算）。
+const paperSizeOf = spec => {
+  const r = toRenderOptions(spec)
+  const vertical = isVertical(spec.writingMode)
+  const n = Math.max(1, Math.round(spreadColumnCount(spec)))
+  const g = spec.page.gap / 100
+  let w, h
+  if (vertical) {
+    w = parseFloat(r['max-block-size']) // 行が積まれる方向
+    h = parseFloat(r['max-inline-size']) // 1行の長さ
+  } else {
+    w = parseFloat(r['max-inline-size']) * n
+    h = parseFloat(r['max-block-size'])
+  }
+  w += Math.ceil((w * g) / Math.max(0.05, 1 - g)) + 4
+  h += 2 * spec.page.margin + 4
+  return { w, h }
+}
+
+// 閲覧領域に収めるための縮小版組式。字詰め(charsPerLine)・行数(linesPerPage)は変えず、
+// フォントサイズと各寸法を比例縮小するので、一面あたりの字数・行数は不変。
+// (transform: scale は paginator の getBoundingClientRect 計測を狂わせるため使わない)
+const scaleSpec = (spec, s) => ({
+  ...spec,
+  font: { ...spec.font, size: spec.font.size * s },
+  page: {
+    ...spec.page,
+    margin: spec.page.margin * s,
+    inset: spec.page.inset * s,
+    frame: {
+      ...spec.page.frame,
+      width: spec.page.frame.width * s,
+      radius: spec.page.frame.radius * s,
+    },
+  },
+})
+
 const formatLanguageMap = x => {
   if (!x) return ''
   if (typeof x === 'string') return x
@@ -127,6 +164,9 @@ export class App {
   #applyTimer = null
   #frameTimer = null
   #toastTimer = null
+  #scale = 1
+  #renderSpec = null
+  #lastApplied = null
   #presetSelect = null
   #familySelect = null
   #alignSelect = null
@@ -186,7 +226,10 @@ export class App {
       this.#reader.addEventListener('layout-warning', ({ detail }) => this.#toast(detail.message, 'error'))
       this.#reader.addEventListener('illustration', ({ detail }) => this.#showLightbox(detail.src, detail.alt))
     }
-    await this.#reader.open(source, this.#spec)
+    this.#applyFrame()
+    const spec = this.#renderSpec ?? this.#spec
+    await this.#reader.open(source, spec)
+    this.#lastApplied = spec
     this.#onOpened()
   }
 
@@ -455,13 +498,21 @@ export class App {
     clearTimeout(this.#applyTimer)
     this.#applyTimer = null
     storeSpec(this.#spec)
+    this.#renderSpec = null
     this.#applyFrame()
-    if (this.#reader?.view) {
-      this.#reader.setSpec(this.#spec)
-        .then(() => { this.#updateDirection(); this.#buildTicks() })
-        .catch(e => this.#error(e))
-    }
+    this.#applyRenderSpec()
     this.#syncJSON()
+  }
+
+  // 現在の組式（必要なら縮小版）を reader へ反映する。
+  #applyRenderSpec() {
+    if (!this.#reader?.view) return
+    const spec = this.#renderSpec ?? this.#spec
+    if (spec === this.#lastApplied) return
+    this.#lastApplied = spec
+    this.#reader.setSpec(spec)
+      .then(() => { this.#updateDirection(); this.#buildTicks() })
+      .catch(e => this.#error(e))
   }
 
   #syncControls() {
@@ -632,54 +683,55 @@ export class App {
 
   // 組式 (余白/外枠) を閲覧領域へ反映。
   // 紙(foliate-view) = 本文(組式サイズ) + 外枠ぶん + 余白。余白は本文の外側に広がる。
+  // 閲覧領域に収まらない場合は、字詰め・行数を保ったまま寸法を比例縮小した
+  // 「縮小版組式」で組み直す（transform は使わない）。
   #applyFrame() {
     const view = this.els.view
-    if (!view || !this.#spec) return
-    const { page } = this.#spec
-    const f = page.frame
-    const r = toRenderOptions(this.#spec)
-    const vertical = isVertical(this.#spec.writingMode)
-    const n = Math.max(1, Math.round(spreadColumnCount(this.#spec)))
-    const g = page.gap / 100
+    if (!view || !this.#spec) return false
 
-    // 本文領域 (組式) の寸法
-    let w, h
-    if (vertical) {
-      w = parseFloat(r['max-block-size']) // 行が積まれる方向
-      h = parseFloat(r['max-inline-size']) // 1行の長さ
-    } else {
-      w = parseFloat(r['max-inline-size']) * n
-      h = parseFloat(r['max-block-size'])
-    }
-    // 段間(外側の隙間) と 柱/ノンブル帯、外枠ぶんの余裕
-    w += Math.ceil((w * g) / Math.max(0.05, 1 - g)) + 4
-    h += 2 * page.margin + 4
+    const base = paperSizeOf(this.#spec)
+    const baseFrame = this.#spec.page.frame.enabled ? this.#spec.page.frame.width * 2 : 0
+    const baseInset = this.#spec.page.inset
+    const baseW = base.w + 2 * baseInset + baseFrame
+    const baseH = base.h + 2 * baseInset + baseFrame
 
-    const inset = page.inset
-    const frame = f.enabled ? f.width * 2 : 0
-    const paperW = Math.round(w + 2 * inset + frame)
-    const paperH = Math.round(h + 2 * inset + frame)
-    // 組式の版面（字詰め×行数）はそのままに、閲覧領域へ収まるよう一様に縮小表示する。
-    // 紙の論理サイズは変えないので、再組版は起きず一面あたりの文字数・行数は不変。
     const availW = view.clientWidth
     const availH = view.clientHeight
+    // paperSizeOf には縮小しても減らない固定余裕 (+4) があるため、その分を差し引いて
+    // 縮小率を決める (差し引かないと数pxはみ出す)。
+    const pad = 8
     const scale = availW > 0 && availH > 0
-      ? Math.min(1, availW / paperW, availH / paperH)
+      ? Math.min(1, (availW - pad) / Math.max(1, baseW - pad), (availH - pad) / Math.max(1, baseH - pad))
       : 1
+
+    const changed = !this.#renderSpec || Math.abs(scale - this.#scale) > 1e-4
+    this.#scale = scale
+    if (changed) this.#renderSpec = scale < 1 ? scaleSpec(this.#spec, scale) : this.#spec
+    const spec = this.#renderSpec
+
+    const { page } = spec
+    const f = page.frame
+    const { w, h } = paperSizeOf(spec)
+    const inset = page.inset
+    const frame = f.enabled ? f.width * 2 : 0
+    const paperW = Math.min(availW || Infinity, Math.round(w + 2 * inset + frame))
+    const paperH = Math.min(availH || Infinity, Math.round(h + 2 * inset + frame))
     view.style.setProperty('--paper-w', `${paperW}px`)
     view.style.setProperty('--paper-h', `${paperH}px`)
-    view.style.setProperty('--paper-scale', String(scale))
     view.style.setProperty('--frame-width', f.enabled ? `${f.width}px` : '0px')
     view.style.setProperty('--frame-style', f.style)
     view.style.setProperty('--frame-color', f.color || 'var(--line)')
     view.style.setProperty('--frame-radius', `${f.radius}px`)
+    return changed
   }
 
   // 閲覧領域のサイズ変化（ウィンドウリサイズ・回転・アドレスバー伸縮）に追従して
-  // 紙の縮尺を計算し直す。
+  // 縮尺を計算し直す。
   #scheduleFrame() {
     clearTimeout(this.#frameTimer)
-    this.#frameTimer = setTimeout(() => this.#applyFrame(), 120)
+    this.#frameTimer = setTimeout(() => {
+      if (this.#applyFrame()) this.#applyRenderSpec()
+    }, 120)
   }
 
   // 綴り方向に合わせてプログレスバーと進む/戻るボタンの説明を揃える
@@ -726,6 +778,7 @@ export class App {
     $('#btn-next').disabled = false
     this.els.slider.disabled = false
     this.#applyFrame()
+    this.#applyRenderSpec()
     this.#updateDirection()
     this.#buildTicks()
     if (this.#reader.isFixedLayout)
