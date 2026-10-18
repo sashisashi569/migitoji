@@ -249,6 +249,23 @@ const main = async () => {
   if (!(f2 < f1)) fail('右25%(#view基準)クリックでページが戻らない')
   if (f3 !== f2) fail('中央(#view基準)クリックでページが動いてしまう')
 
+  // div#background (paper 面, target は foliate-view に再ターゲット) のクリックも同基準
+  const clickPaper = rel => evalJS(`(() => {
+    const v = document.getElementById('view')
+    const pv = v.querySelector('foliate-view')
+    const r = v.getBoundingClientRect()
+    pv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * ${rel}, clientY: r.top + r.height / 2 }))
+    return 'ok'
+  })()`)
+  const g0 = await frac()
+  await clickPaper(0.12); await delay(1000)
+  const g1 = await frac()
+  await clickPaper(0.88); await delay(1000)
+  const g2 = await frac()
+  log(`paper(#background) fractions: ${g0} -> ${g1} (left25%) -> ${g2} (right25%)`)
+  if (!(g1 > g0)) fail('#background 左25%クリックでページが進まない')
+  if (!(g2 < g1)) fail('#background 右25%クリックでページが戻らない')
+
   // 挿絵ズーム (クリックでライトボックス表示)
   await evalJS(`(async () => { await document.querySelector('foliate-view').goTo(0); return 'ok' })()`)
   await delay(1500)

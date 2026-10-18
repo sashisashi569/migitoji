@@ -542,10 +542,16 @@ export class App {
     $('#btn-next').addEventListener('click', () => this.#reader?.goRight())
     this.els.slider.addEventListener('input', e => this.#reader?.goToFraction(Number(e.target.value)))
 
-    // 余白(紙の外側)クリックも、main#view 基準の左右25%でページ送り/戻し。
-    // 本文(iframe)内のクリックは Reader 側で同じ基準により処理される。
+    // 余白クリックも main#view 基準の左右25%でページ送り/戻し。
+    //  - 本文(iframe)内: Reader 側で同じ基準により処理
+    //  - paginator の div#background (紙のうち本文の外側): shadow 再ターゲットで
+    //    target が foliate-view になるため、それも判定に含める
+    //  - #view の余白(紙の外側): target が #view
     this.els.view.addEventListener('click', e => {
-      if (e.target !== this.els.view) return
+      const t = e.target
+      const isBackdrop = t === this.els.view
+      const isPaper = t?.localName === 'foliate-view'
+      if (!isBackdrop && !isPaper) return
       if (!this.#reader?.view) return
       const rect = this.els.view.getBoundingClientRect()
       if (!rect.width) return
