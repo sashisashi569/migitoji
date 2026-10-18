@@ -1,6 +1,6 @@
 # 概要
 
-**migitoji（右綴じ）** は、組式（くみしき）を JSON でカスタマイズできる、縦書き・見開き対応の日本向け電子書籍リーダーです。
+**migitoji** は、組式（くみしき）を JSON でカスタマイズできる、縦書き・見開き対応の日本向け電子書籍リーダーです。
 
 [foliate-js](https://github.com/johnfactotum/foliate-js) を git submodule として参照し、日本の書籍の組版（字詰め・行数・柱・ノンブル・余白・外枠・見出し）に沿ったページ表示を行います。ビルド不要のネイティブ ES Modules で構成し、Nix devshell によるセルフホスト環境と GitHub Pages 配信に対応しています。
 
@@ -9,6 +9,7 @@
 - **組式のカスタマイズ / インポート**: 組式を JSON で定義・入出力。`presets/schema.json`（JSON Schema）付き。
 - **内蔵プリセット**: 日本の出版社・判型の組版を参考にした 15 種類（文庫／新書／四六判／A5／各社文庫風 など）。
 - **縦書き・横書き**: 組方向に応じて、字詰め＝1行の字数、行数＝行が積まれる方向を正しく写像。
+- **綴じ方向**: 組方向（文字送り）と独立に紙の向き（縦綴じ／横綴じ）を指定。縦綴じのまま横書きにできる。
 - **見開き / 単ページ**: 綴り方向（右綴じ／左綴じ）に追従して切替。
 - **紙モデル**: 本文は組式サイズで固定し、余白は外側に広がる「紙」として描画（本文が潰れない）。
 - **小画面への自動フィット**: 画面に収まらない場合は、字詰め・行数を保ったまま寸法を比例縮小して組み直し（一面あたりの文字数・行数は不変）。
@@ -30,21 +31,10 @@
 
 # 使用方法
 
-## 取得
+## 開く
 
-```sh
-# submodule を含めて取得
-git clone --recurse-submodules <this-repo-url> migitoji
-cd migitoji
-# 既に clone 済みなら
-git submodule update --init --recursive
-```
-
-## 起動して開く
-
-1. 開発サーバーを起動し、ブラウザで開く（[アクセス](#アクセス) を参照）。
+1. ブラウザで[開く](https://sashisashi569.github.io/migitoji/)。
 2. 電子書籍ファイルをドラッグ＆ドロップ、または「ファイルを選択」で開く。
-3. URL パラメータで開くこともできます: `http://127.0.0.1:8000/?url=./path/to/book.epub`
 
 ## 操作
 
@@ -61,7 +51,8 @@ git submodule update --init --recursive
 {
   "preset": "bunko-vertical",       // プリセットを土台にする場合
   "name": "マイ組式",
-  "writingMode": "vertical-rl",     // vertical-rl | vertical-lr | horizontal-tb
+  "writingMode": "vertical-rl",     // 文字送り方向: vertical-rl | vertical-lr | horizontal-tb
+  "binding": "auto",                // 紙の向き: auto | vertical (縦綴じ/縦長) | horizontal (横綴じ/横長)
   "font":   { "size": 15, "lineHeight": 1.7, "letterSpacing": 0.02, "family": "..." },
   "page": {
     "charsPerLine": 40,             // 字詰め（1行の字数）
@@ -90,6 +81,7 @@ git submodule update --init --recursive
 }
 ```
 
+- `binding` は紙の向きを決めます。`auto`（既定）は組方向に追従（縦組み=縦綴じ／横組み=横綴じ）。`vertical` にすると紙を縦長（縦綴じ）のまま文字送り方向だけ切り替えられます（横書き書籍など）。紙の寸法は、同じ `charsPerLine`／`linesPerPage` の縦組みと同じになります。
 - スキーマ: [`presets/schema.json`](./presets/schema.json)
 - 全プリセット: [`presets/index.json`](./presets/index.json)
 - 記述例: [`presets/example-custom.json`](./presets/example-custom.json), [`presets/example-preset-diff.json`](./presets/example-preset-diff.json)
@@ -116,17 +108,17 @@ git submodule update --init --recursive
 
 > 各プリセットの数値は、判型ごとの一般的な組版慣例に基づく**参考値**です。各社の実際の組版仕様を示すものではありません。
 
-# アクセス
-
-## GitHub Pages
-
-ビルド不要のため、そのまま公開できます。
-
-- https://sashisashi569.github.io/migitoji/
-
-`main` への push で `.github/workflows/pages.yml` が `dist/` を生成して配信します。
-
 ## セルフホスト
+
+### 取得
+
+```sh
+# submodule を含めて取得
+git clone --recurse-submodules <this-repo-url> migitoji
+cd migitoji
+# 既に clone 済みなら
+git submodule update --init --recursive
+```
 
 ### Nix devshell（推奨）
 

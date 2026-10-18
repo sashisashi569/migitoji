@@ -6,6 +6,7 @@
     "description": "A6 文庫サイズの標準的な縦組み。字詰め40字・16行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -106,6 +107,7 @@
     "description": "新書サイズの縦組み。字詰め40字・17行で可読性を確保。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -206,6 +208,7 @@
     "description": "四六判単行本の縦組み。字詰め42字・17行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 16,
@@ -306,6 +309,7 @@
     "description": "実用書・学術書に多い A5 判の縦組み。字詰め43字・19行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -406,6 +410,7 @@
     "description": "小型・密組み・控えめな余白を特徴とする岩波文庫風の参考値。字詰め41字・16行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 14.5,
@@ -506,6 +511,7 @@
     "description": "大衆文芸向けに字間をやや広めに取った講談社文庫風の参考値。字詰め40字・16行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -606,6 +612,7 @@
     "description": "行間と字間をゆったり取った新潮文庫風の参考値。字詰め40字・17行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -706,6 +713,7 @@
     "description": "ライト文芸・エンタメ文庫を想定したやや大きめの角川文庫風参考値。字詰め40字・16行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15.5,
@@ -806,6 +814,7 @@
     "description": "普遍的な文庫組みを踏襲したちくま文庫風の参考値。字詰め40字・16行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -906,6 +915,7 @@
     "description": "新書の本文組。見出しはゴシック、本文は明朝。字詰め40字・17行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -1006,6 +1016,7 @@
     "description": "余計な装飾を排した最小限の縦組み。字詰め40字・17行。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 16,
@@ -1106,6 +1117,7 @@
     "description": "余白・外枠・カラーテーマ・柱位置を定義した例。字詰め40字・16行の縦組み。",
     "writingMode": "vertical-rl",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
       "size": 15,
@@ -1206,6 +1218,7 @@
     "description": "横組みで読む場合の文庫サイズ。字詰め45字・18行。行数は高さに対応。",
     "writingMode": "horizontal-tb",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif",
       "size": 15,
@@ -1306,6 +1319,7 @@
     "description": "画面読書に最適化したゴシック体・広めの行間・字下げなし。字詰め42字・22行。",
     "writingMode": "horizontal-tb",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif",
       "size": 17,
@@ -1406,6 +1420,7 @@
     "description": "コードや欧文を多く含む書籍向け。等幅フォントと控えめな字下げ。字詰め50字・24行。",
     "writingMode": "horizontal-tb",
     "direction": "auto",
+    "binding": "auto",
     "font": {
       "family": "'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif",
       "size": 16,

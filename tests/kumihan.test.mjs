@@ -144,12 +144,71 @@ test('gap があると段幅ぶんを補正する', () => {
   assert.ok(parseFloat(withGap['max-inline-size']) > 300)
 })
 
-test('requiresReload は組方向の変化のみ true', () => {
+test('binding は既定 auto、無効値は auto へフォールバック', () => {
+  assert.equal(normalizeSpec({}).spec.binding, 'auto')
+  assert.equal(normalizeSpec({ binding: 'vertical' }).spec.binding, 'vertical')
+  assert.equal(normalizeSpec({ binding: 'horizontal' }).spec.binding, 'horizontal')
+  const { spec, warnings } = normalizeSpec({ binding: 'diagonal' })
+  assert.equal(spec.binding, 'auto')
+  assert.ok(warnings.some(w => w.includes('binding')))
+})
+
+test('縦綴じ + 横組み は紙の向きを変えず文字送りだけ横にする', () => {
+  // gap 0 / 字詰め20字(A=400px) × 行数5行(B=200px) → 紙は縦長。
+  const common = {
+    font: { size: 20, lineHeight: 2, letterSpacing: 0 },
+    page: { linesPerPage: 5, charsPerLine: 20, gap: 0, spread: 'single' },
+  }
+  const vertical = toRenderOptions(normalizeSpec({ ...common, writingMode: 'vertical-rl' }).spec)
+  const horizontal = toRenderOptions(normalizeSpec({ ...common, writingMode: 'horizontal-tb' }).spec)
+  const portraitH = toRenderOptions(normalizeSpec({
+    ...common, writingMode: 'horizontal-tb', binding: 'vertical',
+  }).spec)
+
+  // 自然な向き: 縦組みは紙=縦長 (幅=block 200 / 高さ=inline 400)、横組みは横長。
+  assert.equal(vertical['max-inline-size'], '400px', '縦組みの面の長さ')
+  assert.equal(vertical['max-block-size'], '200px', '縦組みの面の幅')
+  assert.equal(horizontal['max-inline-size'], '400px', '横組みは字詰めが幅')
+  assert.equal(horizontal['max-block-size'], '200px', '横組みは行数が高さ')
+
+  // 縦綴じのまま横組み: 縦組みと同じ紙 (幅=200 / 高さ=400) になる。
+  assert.equal(portraitH['max-inline-size'], '200px', '縦綴じ+横組み: 幅')
+  assert.equal(portraitH['max-block-size'], '400px', '縦綴じ+横組み: 高さ')
+})
+
+test('横綴じ + 縦組み は横組みと同じ紙 (横長) になる', () => {
+  const common = {
+    font: { size: 20, lineHeight: 2, letterSpacing: 0 },
+    page: { linesPerPage: 5, charsPerLine: 20, gap: 0, spread: 'single' },
+  }
+  const horizontal = toRenderOptions(normalizeSpec({ ...common, writingMode: 'horizontal-tb' }).spec)
+  const landscapeV = toRenderOptions(normalizeSpec({
+    ...common, writingMode: 'vertical-rl', binding: 'horizontal',
+  }).spec)
+  assert.equal(landscapeV['max-inline-size'], horizontal['max-block-size'], '縦組み+横綴じ: 面の長さ=高さ')
+  assert.equal(landscapeV['max-block-size'], horizontal['max-inline-size'], '縦組み+横綴じ: 面の幅=幅')
+})
+
+test('requiresReload は組方向・綴じ方向の変化で true', () => {
   const a = normalizeSpec({ writingMode: 'vertical-rl' }).spec
   const b = normalizeSpec({ writingMode: 'horizontal-tb' }).spec
   const c = normalizeSpec({ writingMode: 'vertical-rl', font: { size: 20 } }).spec
+  const d = normalizeSpec({ writingMode: 'vertical-rl', binding: 'horizontal' }).spec
   assert.equal(requiresReload(a, b), true)
   assert.equal(requiresReload(a, c), false)
+  assert.equal(requiresReload(a, d), true, '綴じ方向の変化も再読込')
+})
+
+test('縦綴じのままなら組方向を変えても紙の向きは縦長のまま', () => {
+  const { spec } = normalizeSpec({
+    font: { size: 15, lineHeight: 1.7, letterSpacing: 0.02 },
+    page: { margin: 44, gap: 7, charsPerLine: 40, linesPerPage: 16, spread: 'single' },
+  })
+  const vertical = toRenderOptions({ ...spec, writingMode: 'vertical-rl', binding: 'auto' })
+  const horizontal = toRenderOptions({ ...spec, writingMode: 'horizontal-tb', binding: 'vertical' })
+  // どちらも紙は縦長 (横組み側は幅 < 高さ)。
+  assert.equal(horizontal['max-inline-size'], vertical['max-block-size'], '横組みの幅=縦組みの紙幅')
+  assert.equal(horizontal['max-block-size'], vertical['max-inline-size'], '横組みの高さ=縦組みの紙高')
 })
 
 test('新要素(テーマ/余白/外枠/柱位置)を正規化できる', () => {

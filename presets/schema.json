@@ -55,6 +55,15 @@
       ],
       "default": "auto"
     },
+    "binding": {
+      "enum": [
+        "auto",
+        "vertical",
+        "horizontal"
+      ],
+      "default": "auto",
+      "description": "綴じ方向 (紙の向き)。auto は組方向に追従 (縦組み=縦綴じ / 横組み=横綴じ)"
+    },
     "font": {
       "type": "object",
       "properties": {

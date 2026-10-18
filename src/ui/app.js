@@ -99,6 +99,11 @@ const WRITING_OPTIONS = [
   { value: 'vertical-rl', label: '縦書き' },
   { value: 'horizontal-tb', label: '横書き' },
 ]
+const BINDING_OPTIONS = [
+  { value: 'auto', label: '自動' },
+  { value: 'vertical', label: '縦綴じ' },
+  { value: 'horizontal', label: '横綴じ' },
+]
 const SPREAD_OPTIONS = [
   { value: 'auto', label: '自動' },
   { value: 'spread', label: '見開き' },
@@ -357,9 +362,12 @@ export class App {
 
   #sectionLayout() {
     return el('div', { class: 'section' },
-      el('h2', {}, '組方向・見開き'),
-      this.#radioField('組方向', 'writingMode', WRITING_OPTIONS),
+      el('h2', {}, '組方向・綴じ・見開き'),
+      this.#radioField('組方向（文字送り）', 'writingMode', WRITING_OPTIONS),
+      this.#radioField('綴じ方向（紙の向き）', 'binding', BINDING_OPTIONS),
       this.#radioField('見開き', 'page.spread', SPREAD_OPTIONS),
+      el('p', { class: 'notice' },
+        '「自動」では組方向に追従して紙の向きが決まります。縦綴じにすると紙は縦長のまま、文字送り方向だけを切り替えられます（横書き書籍など）。'),
     )
   }
 
@@ -602,7 +610,7 @@ export class App {
     spreadBtn.textContent = spec.page.spread === 'single' ? '単ページ' : spec.page.spread === 'spread' ? '見開き' : '見開き(自動)'
     const writingBtn = $('#btn-writing')
     writingBtn.setAttribute('aria-pressed', String(isVertical(spec.writingMode)))
-    writingBtn.textContent = isVertical(spec.writingMode) ? '縦組み' : '横組み'
+    writingBtn.textContent = isVertical(spec.writingMode) ? '縦書き' : '横書き'
   }
 
   #syncJSON() {
@@ -637,9 +645,16 @@ export class App {
       const next = this.#spec.page.spread === 'single' ? 'spread' : 'single'
       this.#commit(setPath('page.spread', next), { immediate: true })
     })
+    // 文字送り方向 (縦書き/横書き) だけを切り替え、紙の向き (綴じ) は保つ。
+    // 現在の紙の向きを binding に固定してから組方向を反転する。
     $('#btn-writing').addEventListener('click', () => {
-      const next = isVertical(this.#spec.writingMode) ? 'horizontal-tb' : 'vertical-rl'
-      this.#commit(setPath('writingMode', next), { immediate: true })
+      const vertical = isVertical(this.#spec.writingMode)
+      const paperVertical = this.#spec.binding === 'vertical'
+        || (this.#spec.binding === 'auto' && vertical)
+      this.#commit({
+        writingMode: vertical ? 'horizontal-tb' : 'vertical-rl',
+        binding: paperVertical ? 'vertical' : 'horizontal',
+      }, { immediate: true })
     })
 
     $('#btn-prev').addEventListener('click', () => this.#reader?.goLeft())

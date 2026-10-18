@@ -4,6 +4,8 @@
 export const SPEC_VERSION = 1
 
 export const WRITING_MODES = ['vertical-rl', 'vertical-lr', 'horizontal-tb']
+// 綴じ方向 (紙の向き)。auto は組方向から導出 (縦組み=縦綴じ / 横組み=横綴じ)。
+export const BINDINGS = ['auto', 'vertical', 'horizontal']
 export const TEXT_ALIGNS = ['justify', 'start', 'end', 'left', 'right', 'center']
 export const LINE_BREAKS = ['auto', 'loose', 'normal', 'strict', 'anywhere']
 export const WORD_BREAKS = ['normal', 'break-all', 'keep-all', 'break-word']
@@ -25,6 +27,8 @@ export const defaultSpec = () => ({
   description: '',
   writingMode: 'vertical-rl',
   direction: 'auto',
+  // 綴じ方向: auto | vertical (縦綴じ/縦長) | horizontal (横綴じ/横長)
+  binding: 'auto',
   font: {
     family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
     size: 15,
@@ -205,6 +209,7 @@ export const normalizeSpec = input => {
     description: str(input.description, d.description, { label: 'description', maxLen: 2000 }),
     writingMode: oneOf(input.writingMode, d.writingMode, WRITING_MODES, 'writingMode'),
     direction: oneOf(input.direction, d.direction, ['auto', 'rtl', 'ltr'], 'direction'),
+    binding: oneOf(input.binding, d.binding, BINDINGS, 'binding'),
     font: {
       family: str(f.family, d.font.family, { label: 'font.family', maxLen: 500 }),
       size: num(f.size, d.font.size, { min: 8, max: 72, label: 'font.size' }),
@@ -350,6 +355,11 @@ export const JSON_SCHEMA = {
     description: { type: 'string' },
     writingMode: { enum: WRITING_MODES, default: 'vertical-rl' },
     direction: { enum: ['auto', 'rtl', 'ltr'], default: 'auto' },
+    binding: {
+      enum: BINDINGS,
+      default: 'auto',
+      description: '綴じ方向 (紙の向き)。auto は組方向に追従 (縦組み=縦綴じ / 横組み=横綴じ)',
+    },
     font: {
       type: 'object',
       properties: {
