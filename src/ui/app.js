@@ -542,6 +542,18 @@ export class App {
     $('#btn-next').addEventListener('click', () => this.#reader?.goRight())
     this.els.slider.addEventListener('input', e => this.#reader?.goToFraction(Number(e.target.value)))
 
+    // 余白(紙の外側)クリックでもページ送り/戻しを行う。
+    // 本文(iframe)内のクリックは Reader 側で処理されるため、ここでは背景のみ扱う。
+    this.els.view.addEventListener('click', e => {
+      if (e.target !== this.els.view) return
+      if (!this.#reader?.view) return
+      const paper = this.els.view.querySelector('foliate-view')
+      const rect = paper?.getBoundingClientRect()
+      if (!rect) return
+      if (e.clientX < rect.left) this.#reader.goLeft()
+      else if (e.clientX > rect.right) this.#reader.goRight()
+    })
+
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !this.els.lightbox.hidden) { this.#hideLightbox(); return }
       if (e.target.closest?.('input, textarea, select')) return
