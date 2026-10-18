@@ -254,13 +254,22 @@ const main = async () => {
     return 'clicked'
   })()`)
   await delay(400)
-  const lb = JSON.parse(await evalJS(`JSON.stringify({
-    open: !document.getElementById('lightbox').hidden,
-    hasSrc: !!document.getElementById('lightbox-img').getAttribute('src'),
-  })`))
+  const lb = JSON.parse(await evalJS(`JSON.stringify((() => {
+    const img = document.getElementById('lightbox-img')
+    const r = img.getBoundingClientRect()
+    return {
+      open: !document.getElementById('lightbox').hidden,
+      hasSrc: !!img.getAttribute('src'),
+      w: Math.round(r.width), h: Math.round(r.height),
+      vw: window.innerWidth, vh: window.innerHeight,
+    }
+  })())`))
   log('illustration zoom', { imgClick, ...lb })
   if (imgClick !== 'clicked') fail(`挿絵が見つからない: ${imgClick}`)
   if (!lb.open || !lb.hasSrc) fail('挿絵クリックでズーム表示されない')
+  // ブラウザ表示領域に合わせて拡大されていること (元は 300x200)
+  if (!(Math.max(lb.w, lb.h) >= Math.min(lb.vw, lb.vh) * 0.8))
+    fail(`挿絵がブラウザ表示サイズに拡大されていない: img=${lb.w}x${lb.h} viewport=${lb.vw}x${lb.vh}`)
   await evalJS(`document.getElementById('lightbox-close').click(); 'ok'`)
 
   // 本文カラーテーマ
