@@ -49,7 +49,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 12,
+      "inset": 28,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -138,7 +138,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 12,
+      "inset": 28,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -227,7 +227,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 16,
+      "inset": 32,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -316,7 +316,7 @@
       "linesPerPage": 19,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 16,
+      "inset": 32,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -405,7 +405,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 8,
+      "inset": 22,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -494,7 +494,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 12,
+      "inset": 28,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -583,7 +583,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 14,
+      "inset": 30,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -672,9 +672,9 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 12,
+      "inset": 28,
       "frame": {
-        "enabled": false,
+        "enabled": true,
         "width": 1,
         "color": null,
         "style": "solid",
@@ -761,7 +761,7 @@
       "linesPerPage": 16,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 12,
+      "inset": 28,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -850,7 +850,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 14,
+      "inset": 30,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -939,7 +939,7 @@
       "linesPerPage": 17,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 8,
+      "inset": 20,
       "frame": {
         "enabled": false,
         "width": 1,
@@ -1117,7 +1117,7 @@
       "linesPerPage": 18,
       "columnCount": 2,
       "spread": "auto",
-      "inset": 12,
+      "inset": 28,
       "frame": {
         "enabled": false,
         "width": 1,

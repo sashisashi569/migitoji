@@ -163,6 +163,8 @@ const effectiveColumnCount = page => page.spread === 'single' ? 1
   : page.spread === 'spread' ? Math.max(2, page.columnCount)
     : page.columnCount
 
+export const spreadColumnCount = spec => effectiveColumnCount(spec.page)
+
 // 組式（字詰め・行数）から paginator の論理サイズ属性へ変換する。
 //
 // 横組み: max-block-size(高さ) = 行数 × 行送り / max-inline-size(幅) = 字詰め × 字送り。

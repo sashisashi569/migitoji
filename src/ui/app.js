@@ -4,6 +4,7 @@ import {
   normalizeSpec, defaultSpec, isVertical, mergeSpec,
 } from '../kumihan/spec.js'
 import { PRESETS, getPreset } from '../kumihan/presets.js'
+import { toRenderOptions, spreadColumnCount } from '../kumihan/css.js'
 import {
   parseKumihan, serializeSpec, loadStoredSpec, storeSpec, downloadSpec, readFileAsText,
 } from '../kumihan/io.js'
@@ -408,7 +409,7 @@ export class App {
   }
 
   #rangeField({ path, label, min, max, step, unit }) {
-    const input = el('input', { type: 'range', min, max, step, value: 0 })
+    const input = el('input', { type: 'range', min, max, step, value: 0, 'data-path': path })
     const output = el('output')
     const update = () => {
       const v = Number(input.value)
@@ -608,13 +609,35 @@ export class App {
     if (this.#uiThemeSelect) this.#uiThemeSelect.value = this.#uiTheme
   }
 
-  // 組式 (余白/外枠) を閲覧領域へ反映
+  // 組式 (余白/外枠) を閲覧領域へ反映。
+  // 紙(foliate-view) = 本文(組式サイズ) + 外枠ぶん + 余白。余白は本文の外側に広がる。
   #applyFrame() {
     const view = this.els.view
     if (!view || !this.#spec) return
     const { page } = this.#spec
     const f = page.frame
-    view.style.setProperty('--page-inset', `${Math.round(page.inset)}px`)
+    const r = toRenderOptions(this.#spec)
+    const vertical = isVertical(this.#spec.writingMode)
+    const n = Math.max(1, Math.round(spreadColumnCount(this.#spec)))
+    const g = page.gap / 100
+
+    // 本文領域 (組式) の寸法
+    let w, h
+    if (vertical) {
+      w = parseFloat(r['max-block-size']) // 行が積まれる方向
+      h = parseFloat(r['max-inline-size']) // 1行の長さ
+    } else {
+      w = parseFloat(r['max-inline-size']) * n
+      h = parseFloat(r['max-block-size'])
+    }
+    // 段間(外側の隙間) と 柱/ノンブル帯、外枠ぶんの余裕
+    w += Math.ceil((w * g) / Math.max(0.05, 1 - g)) + 4
+    h += 2 * page.margin + 4
+
+    const inset = page.inset
+    const frame = f.enabled ? f.width * 2 : 0
+    view.style.setProperty('--paper-w', `${Math.round(w + 2 * inset + frame)}px`)
+    view.style.setProperty('--paper-h', `${Math.round(h + 2 * inset + frame)}px`)
     view.style.setProperty('--frame-width', f.enabled ? `${f.width}px` : '0px')
     view.style.setProperty('--frame-style', f.style)
     view.style.setProperty('--frame-color', f.color || 'var(--line)')

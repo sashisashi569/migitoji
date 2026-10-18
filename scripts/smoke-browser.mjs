@@ -279,6 +279,31 @@ const main = async () => {
   log('ui theme:', uiTheme)
   if (uiTheme !== 'dark') fail(`UI ダークテーマが適用されない: ${uiTheme}`)
 
+  // 余白を増やしても本文(組式サイズ)が潰れず、紙が外側に広がること
+  const measurePaper = () => evalJS(`JSON.stringify((() => {
+    const v = document.querySelector('foliate-view')
+    const de = v.renderer.getContents()[0].doc.documentElement.getBoundingClientRect()
+    const fv = document.querySelector('#view > foliate-view').getBoundingClientRect()
+    return { rw: Math.round(de.width), rh: Math.round(de.height), pw: Math.round(fv.width), ph: Math.round(fv.height) }
+  })())`)
+  const setRange = (path, val) => evalJS(`(() => {
+    const i = document.querySelector('input[type=range][data-path="${path}"]')
+    if (!i) return 'no-input'
+    i.value = ${val}; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true }))
+    return 'ok'
+  })()`)
+  await setRange('page.inset', 0); await delay(1200)
+  const p0 = JSON.parse(await measurePaper())
+  await setRange('page.inset', 64); await delay(1200)
+  const p1 = JSON.parse(await measurePaper())
+  log('paper inset 0 ->', p0)
+  log('paper inset 64 ->', p1)
+  if (Math.abs(p0.rw - p1.rw) > 2 || Math.abs(p0.rh - p1.rh) > 2)
+    fail(`余白で本文が潰れている: ${JSON.stringify(p0)} -> ${JSON.stringify(p1)}`)
+  if (!(p1.pw >= p0.pw + 100 && p1.ph >= p0.ph + 100))
+    fail(`余白で紙が外側に広がらない: ${JSON.stringify(p0)} -> ${JSON.stringify(p1)}`)
+  await setRange('page.inset', 28); await delay(1000)
+
   // 縦組みで見開きへ切替 → コンテナ幅(=max-block-size)が増えるはず
   const singleBlock = parseFloat(s.maxBlockSize)
   await evalJS(`document.getElementById('btn-spread').click(); 'ok'`)
