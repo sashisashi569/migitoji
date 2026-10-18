@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="縦組み・見開き表示に対応した、組式を JSON でカスタマイズできる電子書籍リーダー。">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self'; style-src 'self' blob: 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; connect-src 'self' blob: data:; frame-src 'self' blob: data:; worker-src 'self' blob:; object-src 'self' blob: data:; media-src 'self' blob: data:; form-action 'none'; base-uri 'self';">
+<title>migitoji — 組式リーダー</title>
+<link rel="stylesheet" href="./src/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232b2b2b'/%3E%3Cpath d='M11 7v18M16 7v18M21 7v18' stroke='%23f2ede4' stroke-width='2'/%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <header id="toolbar">
+    <div class="group">
+      <button id="btn-open" class="icon-btn" title="ファイルを開く" aria-label="ファイルを開く">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h6l2 2h8v10H4z"/></svg>
+      </button>
+      <input type="file" id="file-input" accept=".epub,.mobi,.azw3,.azw,.fb2,.fbz,.cbz,.pdf" hidden>
+      <button id="btn-toc" class="icon-btn" title="目次" aria-label="目次" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+    </div>
+    <div id="book-title" role="status"></div>
+    <div class="group">
+      <button id="btn-spread" class="text-btn" title="見開き / 単ページ" aria-pressed="false">見開き</button>
+      <button id="btn-writing" class="text-btn" title="縦組み / 横組み" aria-pressed="true">縦組み</button>
+      <button id="btn-settings" class="icon-btn" title="表示設定" aria-label="表示設定" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="view" aria-label="本文"></main>
+
+  <footer id="progressbar">
+    <button id="btn-prev" class="icon-btn" title="前" aria-label="前へ" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <input id="slider" type="range" min="0" max="1" step="any" value="0" list="ticks" disabled>
+    <datalist id="ticks"></datalist>
+    <output id="progress-label"></output>
+    <button id="btn-next" class="icon-btn" title="次" aria-label="次へ" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+  </footer>
+
+  <aside id="sidebar" aria-hidden="true" aria-label="目次">
+    <div class="panel-head">
+      <span>目次</span>
+      <button id="btn-close-toc" class="icon-btn" aria-label="閉じる">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <nav id="toc" aria-label="目次"></nav>
+  </aside>
+
+  <aside id="settings" aria-hidden="true" aria-label="表示設定">
+    <div class="panel-head">
+      <span>表示設定 / 組式</span>
+      <button id="btn-close-settings" class="icon-btn" aria-label="閉じる">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="settings-body"></div>
+  </aside>
+
+  <div id="scrim" hidden></div>
+
+  <div id="drop-target">
+    <div class="drop-inner">
+      <svg class="drop-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M32 8v40M32 48l-10-10M32 48l10-10" />
+        <path d="M12 50h40" />
+      </svg>
+      <h1>migitoji</h1>
+      <p>組式を自由に組める縦書き対応リーダー</p>
+      <p class="hint">ここに電子書籍をドロップ、または
+        <button id="btn-open-2" class="link-btn">ファイルを選択</button>
+      </p>
+      <p class="formats">対応形式: EPUB / MOBI / KF8 (AZW3) / FB2 / CBZ / PDF</p>
+    </div>
+  </div>
+
+  <div id="toast" role="alert" aria-live="polite" hidden></div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

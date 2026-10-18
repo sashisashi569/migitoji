@@ -1,0 +1,11 @@
+# dependencies / build output
+node_modules/
+dist/
+
+# nix
+result
+result-*
+
+# editor / os
+.DS_Store
+*.swp

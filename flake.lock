@@ -1,0 +1,44 @@
+{
+  "nodes": {
+    "foliate-js": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1777663465,
+        "narHash": "sha256-4DoounFpdFNuJZ6fs6Vi4I4JJxpq4AgVt8sv3j354L8=",
+        "owner": "johnfactotum",
+        "repo": "foliate-js",
+        "rev": "78914aef4466eb960965702401634c2cb348e9b1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "johnfactotum",
+        "repo": "foliate-js",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1792094642,
+        "narHash": "sha256-zp8ToDMnqZcu4o4IH9pdwXFXGp7yLm/M0dEnNWnyd7I=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "fe13242281a67641c0102cdb1087f0ebe586c7df",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "foliate-js": "foliate-js",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

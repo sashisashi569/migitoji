@@ -1,0 +1,11 @@
+{
+  "$schema": "./schema.json",
+  "preset": "shincho-bunko",
+  "id": "shincho-bunko-large",
+  "name": "新潮文庫風・大活字",
+  "description": "内蔵プリセット「新潮文庫風」を土台に、文字サイズと行送りだけを大きくした差分指定の例。",
+  "font": {
+    "size": 19,
+    "lineHeight": 1.9
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "migitoji",
+  "version": "0.1.0",
+  "private": true,
+  "description": "縦組み・見開き表示に対応した組式（くみしき）カスタマイズ可能な電子書籍リーダー。foliate-js を submodule として参照。",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "serve": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "gen:presets": "node scripts/gen-presets.mjs",
+    "make:sample": "node scripts/make-sample.mjs",
+    "smoke": "node scripts/smoke-browser.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

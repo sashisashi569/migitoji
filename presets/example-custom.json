@@ -1,0 +1,59 @@
+{
+  "$schema": "./schema.json",
+  "version": 1,
+  "id": "night-reading",
+  "name": "夜間読書（縦組み・低刺激）",
+  "description": "自前の組式をフル記述した例。プリセットを参照せず、全項目をここで定義している。",
+  "writingMode": "vertical-rl",
+  "direction": "auto",
+  "font": {
+    "family": "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif",
+    "size": 16,
+    "weight": 400,
+    "style": "normal",
+    "lineHeight": 1.85,
+    "letterSpacing": 0.03,
+    "wordSpacing": 0,
+    "kerning": true,
+    "features": "\"palt\" 0",
+    "variation": ""
+  },
+  "paragraph": {
+    "indent": 1,
+    "align": "justify",
+    "lineBreak": "strict",
+    "wordBreak": "normal",
+    "hangingPunctuation": "allow-end last",
+    "widows": 2,
+    "orphans": 2,
+    "marginTop": 0,
+    "marginBottom": 0,
+    "spacingBetween": 0
+  },
+  "punctuation": {
+    "autospace": "normal",
+    "trimStart": false,
+    "trimEnd": false,
+    "hanging": true
+  },
+  "ruby": {
+    "size": 0.5,
+    "position": "over",
+    "align": "center",
+    "letterSpacing": 0
+  },
+  "page": {
+    "margin": 56,
+    "gap": 8,
+    "charsPerLine": 40,
+    "linesPerPage": 17,
+    "columnCount": 2,
+    "spread": "auto"
+  },
+  "colors": {
+    "background": "#f4ecd8",
+    "color": "#3a3226"
+  },
+  "fonts": [],
+  "customCSS": "a:link { color: #8a5a2b; }"
+}

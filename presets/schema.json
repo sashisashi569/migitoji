@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/migitoji/kumihan.schema.json",
+  "title": "migitoji 組式 (Kumihan)",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "writingMode": {
+      "enum": [
+        "vertical-rl",
+        "vertical-lr",
+        "horizontal-tb"
+      ],
+      "default": "vertical-rl"
+    },
+    "direction": {
+      "enum": [
+        "auto",
+        "rtl",
+        "ltr"
+      ],
+      "default": "auto"
+    },
+    "font": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 72
+        },
+        "weight": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "style": {
+          "enum": [
+            "normal",
+            "italic",
+            "oblique"
+          ]
+        },
+        "lineHeight": {
+          "type": "number",
+          "minimum": 0.8,
+          "maximum": 4
+        },
+        "letterSpacing": {
+          "type": "number",
+          "minimum": -0.2,
+          "maximum": 1
+        },
+        "wordSpacing": {
+          "type": "number",
+          "minimum": -0.5,
+          "maximum": 2
+        },
+        "kerning": {
+          "type": "boolean"
+        },
+        "features": {
+          "type": "string"
+        },
+        "variation": {
+          "type": "string"
+        }
+      }
+    },
+    "paragraph": {
+      "type": "object",
+      "properties": {
+        "indent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "align": {
+          "enum": [
+            "justify",
+            "start",
+            "end",
+            "left",
+            "right",
+            "center"
+          ]
+        },
+        "lineBreak": {
+          "enum": [
+            "auto",
+            "loose",
+            "normal",
+            "strict",
+            "anywhere"
+          ]
+        },
+        "wordBreak": {
+          "enum": [
+            "normal",
+            "break-all",
+            "keep-all",
+            "break-word"
+          ]
+        },
+        "hangingPunctuation": {
+          "type": "string"
+        },
+        "widows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "orphans": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "marginTop": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "marginBottom": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "spacingBetween": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        }
+      }
+    },
+    "punctuation": {
+      "type": "object",
+      "properties": {
+        "autospace": {
+          "enum": [
+            "normal",
+            "none",
+            "no-autospace",
+            "ideograph-alpha ideograph-numeric"
+          ]
+        },
+        "trimStart": {
+          "type": "boolean"
+        },
+        "trimEnd": {
+          "type": "boolean"
+        },
+        "hanging": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ruby": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1
+        },
+        "position": {
+          "enum": [
+            "over",
+            "under",
+            "inter-character",
+            "auto"
+          ]
+        },
+        "align": {
+          "enum": [
+            "center",
+            "start",
+            "space-between",
+            "space-around"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number",
+          "minimum": -0.2,
+          "maximum": 0.5
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "properties": {
+        "margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "charsPerLine": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120,
+          "description": "字詰め（1行の字数）"
+        },
+        "linesPerPage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1ページの行数（横組み=高さ / 縦組み=幅 に対応）"
+        },
+        "columnCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "spread": {
+          "enum": [
+            "auto",
+            "spread",
+            "single"
+          ]
+        }
+      }
+    },
+    "colors": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "fonts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "family",
+          "src"
+        ],
+        "properties": {
+          "family": {
+            "type": "string"
+          },
+          "src": {
+            "type": "string"
+          },
+          "weight": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "style": {
+            "enum": [
+              "normal",
+              "italic",
+              "oblique"
+            ]
+          },
+          "display": {
+            "enum": [
+              "auto",
+              "block",
+              "swap",
+              "fallback",
+              "optional"
+            ]
+          }
+        }
+      }
+    },
+    "customCSS": {
+      "type": "string"
+    }
+  }
+}
