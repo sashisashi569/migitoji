@@ -72,6 +72,15 @@ test('buildCSS が組方向と本文スタイルを出力する', () => {
   assert.match(withFont, /font-family: "Custom"/)
 })
 
+test('direction: 横組みは LTR を既定にし、明示指定は尊重する', () => {
+  // 横組みは書籍の page-progression-direction に引きずられないよう LTR を明示する
+  assert.match(buildCSS(normalizeSpec({ writingMode: 'horizontal-tb' }).spec), /direction:\s*ltr\s*!important/)
+  assert.match(buildCSS(normalizeSpec({ writingMode: 'horizontal-tb', direction: 'rtl' }).spec), /direction:\s*rtl\s*!important/)
+  // 縦組みは明示指定が無ければ direction を出力しない
+  assert.doesNotMatch(buildCSS(normalizeSpec({ writingMode: 'vertical-rl' }).spec), /direction:\s*(ltr|rtl)/)
+  assert.match(buildCSS(normalizeSpec({ writingMode: 'vertical-rl', direction: 'rtl' }).spec), /direction:\s*rtl\s*!important/)
+})
+
 test('customCSS は末尾にそのまま付与される', () => {
   const { spec } = normalizeSpec({ customCSS: 'body { color: red; }' })
   assert.match(buildCSS(spec), /body \{ color: red; \}/)

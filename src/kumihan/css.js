@@ -52,6 +52,13 @@ export const buildCSS = spec => {
     : 'none'
   const betweenStart = paragraph.marginTop + paragraph.spacingBetween
 
+  // 進行方向 (direction)。明示指定が無ければ横組みのみ LTR に固定する。
+  // 書籍の page-progression-direction (rtl) は縦組み前提の値で、組方向を横組みへ
+  // 上書きした本文と食い違うため、横組みでは direction を明示して進行方向を揃える。
+  const dir = spec.direction === 'rtl' || spec.direction === 'ltr' ? spec.direction
+    : (v === 'vertical' ? null : 'ltr')
+  const dirDecl = dir ? `\n    direction: ${dir} !important;` : ''
+
   const parts = []
 
   parts.push(`@namespace epub "http://www.idpf.org/2007/ops";`)
@@ -69,7 +76,7 @@ export const buildCSS = spec => {
   parts.push(`html {
     color-scheme: ${colors.colorScheme};
     writing-mode: ${wm} !important;
-    -webkit-writing-mode: ${wm} !important;
+    -webkit-writing-mode: ${wm} !important;${dirDecl}
   }`)
 
   parts.push(`/* https://github.com/whatwg/html/issues/5426 */
@@ -79,7 +86,7 @@ export const buildCSS = spec => {
 
   parts.push(`body {
     writing-mode: ${wm} !important;
-    -webkit-writing-mode: ${wm} !important;
+    -webkit-writing-mode: ${wm} !important;${dirDecl}
     font-family: ${font.family};
     font-size: ${font.size}px;
     font-weight: ${font.weight};

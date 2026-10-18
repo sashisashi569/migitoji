@@ -295,8 +295,17 @@ export class Reader extends EventTarget {
   }
 
   get pageDirection() {
-    if (this.vertical) return 'rtl'
-    return this.book?.dir === 'rtl' ? 'rtl' : 'ltr'
+    // 固定レイアウトは組式の適用外なので、書籍の綴じ方向に従う。
+    if (this.#fixed) {
+      if (this.vertical) return 'rtl'
+      return this.book?.dir === 'rtl' ? 'rtl' : 'ltr'
+    }
+    // リフロー: 組式の direction (auto は縦組み=右綴じ / 横組み=左綴じ) に従う。
+    // 書籍の page-progression-direction (book.dir) は参照しない。組方向を組式で
+    // 上書きしているため、本の綴じ方向と本文の進行方向が食い違うことがある。
+    const dir = this.#spec?.direction ?? 'auto'
+    if (dir === 'rtl' || dir === 'ltr') return dir
+    return this.vertical ? 'rtl' : 'ltr'
   }
 
   async goLeft() {
