@@ -125,6 +125,7 @@ export class App {
   #spec = null
   #controls = []
   #applyTimer = null
+  #frameTimer = null
   #toastTimer = null
   #presetSelect = null
   #familySelect = null
@@ -168,6 +169,8 @@ export class App {
     this.#syncControls()
     this.#syncJSON()
     this.#applyFrame()
+    if (typeof ResizeObserver !== 'undefined')
+      new ResizeObserver(() => this.#scheduleFrame()).observe(this.els.view)
 
     const params = new URLSearchParams(location.search)
     const url = params.get('url')
@@ -654,12 +657,29 @@ export class App {
 
     const inset = page.inset
     const frame = f.enabled ? f.width * 2 : 0
-    view.style.setProperty('--paper-w', `${Math.round(w + 2 * inset + frame)}px`)
-    view.style.setProperty('--paper-h', `${Math.round(h + 2 * inset + frame)}px`)
+    const paperW = Math.round(w + 2 * inset + frame)
+    const paperH = Math.round(h + 2 * inset + frame)
+    // 組式の版面（字詰め×行数）はそのままに、閲覧領域へ収まるよう一様に縮小表示する。
+    // 紙の論理サイズは変えないので、再組版は起きず一面あたりの文字数・行数は不変。
+    const availW = view.clientWidth
+    const availH = view.clientHeight
+    const scale = availW > 0 && availH > 0
+      ? Math.min(1, availW / paperW, availH / paperH)
+      : 1
+    view.style.setProperty('--paper-w', `${paperW}px`)
+    view.style.setProperty('--paper-h', `${paperH}px`)
+    view.style.setProperty('--paper-scale', String(scale))
     view.style.setProperty('--frame-width', f.enabled ? `${f.width}px` : '0px')
     view.style.setProperty('--frame-style', f.style)
     view.style.setProperty('--frame-color', f.color || 'var(--line)')
     view.style.setProperty('--frame-radius', `${f.radius}px`)
+  }
+
+  // 閲覧領域のサイズ変化（ウィンドウリサイズ・回転・アドレスバー伸縮）に追従して
+  // 紙の縮尺を計算し直す。
+  #scheduleFrame() {
+    clearTimeout(this.#frameTimer)
+    this.#frameTimer = setTimeout(() => this.#applyFrame(), 120)
   }
 
   // 綴り方向に合わせてプログレスバーと進む/戻るボタンの説明を揃える

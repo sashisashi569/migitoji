@@ -125,13 +125,17 @@ body {
   position: relative;
   overflow: hidden;
   background: var(--bg);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   /* 組式 (page.inset / page.frame) から JS で設定。
      紙(foliate-view)は「本文(組式サイズ) + 余白」の寸法を持ち、
-     余白は本文から外側に広がる (本文は潰れない)。 */
+     余白は本文から外側に広がる (本文は潰れない)。
+     画面に収まらない場合は --paper-scale で一様に縮小表示する
+     (再組版しないので一面あたりの文字数・行数は変わらない)。 */
   --paper-w: 100%;
   --paper-h: 100%;
+  --paper-scale: 1;
   --frame-width: 0px;
   --frame-color: var(--line);
   --frame-style: solid;
@@ -139,14 +143,15 @@ body {
 }
 #view > foliate-view {
   display: block;
+  flex: none;
   width: var(--paper-w);
   height: var(--paper-h);
-  max-width: 100%;
-  max-height: 100%;
   background: var(--paper);
   border: var(--frame-width) var(--frame-style) var(--frame-color);
   border-radius: var(--frame-radius);
   box-shadow: 0 0 0 1px var(--line), 0 2px 24px var(--paper-shadow);
+  transform: scale(var(--paper-scale, 1));
+  transform-origin: center center;
 }
 foliate-view::part(head), foliate-view::part(foot) {
   color: var(--muted);

@@ -3,6 +3,8 @@
 // 事前に `npm run dev` 等で静的サーバーを起動しておくか、--serve で自動起動する。
 //
 // 使い方: node scripts/smoke-browser.mjs [--port 8137] [--out /tmp/smoke.png] [--keep]
+//         node scripts/smoke-browser.mjs --mobile            # スマホ相当 (390x844, dpr3) で診断
+//         node scripts/smoke-browser.mjs --viewport 412x915 --dpr 2.6
 import { spawn } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import net from 'node:net'
@@ -18,6 +20,14 @@ const argOf = (name, def) => {
 const PORT = Number(argOf('--port', 8137))
 const OUT = argOf('--out', '/tmp/opencode/migitoji-smoke.png')
 const KEEP = args.includes('--keep')
+const MOBILE = args.includes('--mobile')
+const VIEWPORT = argOf('--viewport', MOBILE ? '390x844' : null)
+const DPR = Number(argOf('--dpr', MOBILE ? 3 : 0)) || null
+const viewportSize = (() => {
+  if (!VIEWPORT) return null
+  const [w, h] = VIEWPORT.split('x').map(Number)
+  return Number.isFinite(w) && Number.isFinite(h) ? { width: w, height: h } : null
+})()
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 
 const log = (...a) => console.log('[smoke]', ...a)
@@ -68,11 +78,14 @@ class Bidi {
   send(method, params = {}) {
     const id = ++this.#id
     return new Promise((resolve, reject) => {
-      this.#pending.set(id, { resolve, reject })
-      this.#ws.send(JSON.stringify({ id, method, params }))
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (this.#pending.has(id)) { this.#pending.delete(id); reject(new Error(`timeout: ${method}`)) }
       }, 60000)
+      this.#pending.set(id, {
+        resolve: v => { clearTimeout(timer); resolve(v) },
+        reject: e => { clearTimeout(timer); reject(e) },
+      })
+      this.#ws.send(JSON.stringify({ id, method, params }))
     })
   }
   close() { try { this.#ws.close() } catch { /* noop */ } }
@@ -121,8 +134,11 @@ const main = async () => {
   const context = tree.contexts?.[0]?.context
   if (!context) { fail('browsing context が取得できません'); return }
 
-  await bidi.send('browsingContext.setViewport',
-    { context, viewport: { width: 1400, height: 1200 } }).catch(() => {})
+  await bidi.send('browsingContext.setViewport', {
+    context,
+    viewport: viewportSize ?? { width: 1400, height: 1200 },
+    ...(DPR ? { devicePixelRatio: DPR } : {}),
+  }).catch(e => log('setViewport failed:', e.message))
 
   const evalJS = async expression => {
     const r = await bidi.send('script.evaluate', {
@@ -146,6 +162,144 @@ const main = async () => {
   })()`)
   if (ready !== 'ready') { fail('書籍の描画が完了しませんでした'); return }
   log('書籍を描画しました')
+
+  // ---- スマホ相当レイアウトの診断モード ----
+  if (MOBILE) {
+    await fs.mkdir(resolve(OUT, '..'), { recursive: true })
+    const diag = JSON.parse(await evalJS(`JSON.stringify((() => {
+      const v = document.querySelector('foliate-view')
+      const view = document.getElementById('view')
+      const tb = document.getElementById('toolbar')
+      const fb = document.getElementById('progressbar')
+      const paper = v.getBoundingClientRect()
+      const vr = view.getBoundingClientRect()
+      const de = v.renderer.getContents()[0]?.doc?.documentElement
+      const der = de ? de.getBoundingClientRect() : null
+      const vs = getComputedStyle(view)
+      const inView = r => r.left >= vr.left - 1 && r.right <= vr.right + 1 && r.top >= vr.top - 1 && r.bottom <= vr.bottom + 1
+      const btns = [...document.querySelectorAll('#toolbar button')].map(b => {
+        const r = b.getBoundingClientRect()
+        return { id: b.id, left: Math.round(r.left), right: Math.round(r.right), off: r.right > window.innerWidth + 1 || r.left < -1 }
+      })
+      return {
+        viewport: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio },
+        doc: { scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth },
+        toolbar: { scrollW: tb.scrollWidth, clientW: tb.clientWidth, overflow: tb.scrollWidth > tb.clientWidth + 1 },
+        footer: { scrollW: fb.scrollWidth, clientW: fb.clientWidth, overflow: fb.scrollWidth > fb.clientWidth + 1 },
+        view: { w: Math.round(vr.width), h: Math.round(vr.height) },
+        paper: { w: Math.round(paper.width), h: Math.round(paper.height), aspect: +(paper.height / paper.width).toFixed(3), inView: inView(paper) },
+        paperVar: { w: vs.getPropertyValue('--paper-w').trim(), h: vs.getPropertyValue('--paper-h').trim() },
+        paperScale: Number(vs.getPropertyValue('--paper-scale').trim() || '1'),
+        content: der ? { w: Math.round(der.width), h: Math.round(der.height) } : null,
+        renderer: {
+          maxInlineSize: v.renderer.getAttribute('max-inline-size'),
+          maxBlockSize: v.renderer.getAttribute('max-block-size'),
+          columnCount: v.renderer.getAttribute('max-column-count'),
+          pages: v.renderer.pages,
+        },
+        buttonsOffscreen: btns.filter(b => b.off),
+        writingMode: de ? getComputedStyle(de).writingMode : null,
+        hostStyle: (() => {
+          const cs = getComputedStyle(v)
+          return { width: cs.width, maxWidth: cs.maxWidth, height: cs.height, maxHeight: cs.maxHeight, display: cs.display, position: cs.position }
+        })(),
+        viewStyle: (() => {
+          const cs = getComputedStyle(view)
+          return { display: cs.display, width: cs.width, overflow: cs.overflow }
+        })(),
+      }
+    })())`))
+    log('mobile diagnostics', JSON.stringify(diag, null, 2))
+
+    const shot = await bidi.send('browsingContext.captureScreenshot', { context })
+    await fs.writeFile(OUT, Buffer.from(shot.data, 'base64'))
+    log('screenshot ->', OUT)
+
+    if (diag.doc.scrollW > diag.viewport.w + 1)
+      fail(`横スクロールが発生: scrollW=${diag.doc.scrollW} > viewport=${diag.viewport.w}`)
+    if (diag.toolbar.overflow)
+      fail(`ツールバーが横に溢れる: scrollW=${diag.toolbar.scrollW} > clientW=${diag.toolbar.clientW}`)
+    if (diag.buttonsOffscreen.length)
+      fail(`画面外のボタン: ${diag.buttonsOffscreen.map(b => b.id).join(',')}`)
+    if (!diag.paper.inView)
+      fail(`紙が閲覧領域からはみ出す: paper=${diag.paper.w}x${diag.paper.h} view=${diag.view.w}x${diag.view.h}`)
+    if (!(diag.renderer.pages > 1))
+      fail(`ページ数が1以下: ${diag.renderer.pages}`)
+
+    // 組式の紙が閲覧領域より大きい場合は一様縮小されていること
+    const layoutW = parseFloat(diag.paperVar.w)
+    const layoutH = parseFloat(diag.paperVar.h)
+    if (layoutW > diag.view.w + 1 || layoutH > diag.view.h + 1) {
+      if (!(diag.paperScale < 1)) fail(`紙が画面より大きいのに縮小されていない: scale=${diag.paperScale}`)
+      // 縮小後も縦横比が保たれ、閲覧領域に収まること
+      if (Math.abs(diag.paper.w / layoutW - diag.paper.h / layoutH) > 0.01)
+        fail(`縮小で縦横比が崩れている: ${diag.paper.w}x${diag.paper.h} (layout ${layoutW}x${layoutH})`)
+    } else if (diag.paperScale !== 1) {
+      fail(`紙が収まるのに縮小されている: scale=${diag.paperScale}`)
+    }
+
+    // 文字サイズを変えても「一面あたりの字数・行数」が変わらないこと
+    const pageMetrics = () => evalJS(`JSON.stringify((() => {
+      const v = document.querySelector('foliate-view')
+      const doc = v.renderer.getContents()[0].doc
+      const cs = doc.defaultView.getComputedStyle(doc.body)
+      const fs = parseFloat(cs.fontSize)
+      const ls = parseFloat(cs.letterSpacing) || 0
+      const lh = parseFloat(cs.lineHeight) || fs * 1.7
+      const inlinePx = parseFloat(v.renderer.getAttribute('max-inline-size'))
+      const blockPx = parseFloat(v.renderer.getAttribute('max-block-size'))
+      return { fs, ls, lh, inlinePx, blockPx, chars: inlinePx / (fs + ls), lines: blockPx / lh }
+    })())`)
+    const setRange = (path, val) => evalJS(`(() => {
+      const i = document.querySelector('input[type=range][data-path="${path}"]')
+      if (!i) return 'no-input'
+      i.value = ${val}; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true }))
+      return 'ok'
+    })()`)
+    const m0 = JSON.parse(await pageMetrics())
+    await setRange('font.size', Math.max(8, m0.fs - 4)); await delay(1500)
+    const m1 = JSON.parse(await pageMetrics())
+    log('font-size invariance', { before: { fs: m0.fs, chars: +m0.chars.toFixed(1), lines: +m0.lines.toFixed(1) }, after: { fs: m1.fs, chars: +m1.chars.toFixed(1), lines: +m1.lines.toFixed(1) } })
+    const rel = (a, b) => Math.abs(a - b) / Math.max(a, b)
+    if (rel(m0.chars, m1.chars) > 0.02)
+      fail(`文字サイズ変更で字詰めが変わる: ${m0.chars.toFixed(1)} -> ${m1.chars.toFixed(1)}`)
+    if (rel(m0.lines, m1.lines) > 0.02)
+      fail(`文字サイズ変更で行数が変わる: ${m0.lines.toFixed(1)} -> ${m1.lines.toFixed(1)}`)
+
+    // ページ送り/戻し (main#view 基準の左右25%)
+    await evalJS(`(async () => { await document.querySelector('foliate-view').goTo(0); return 'ok' })()`)
+    await delay(1200)
+    const frac = () => evalJS(`document.getElementById('slider').value`).then(Number)
+    const clickRel = rel => evalJS(`(() => {
+      const v = document.getElementById('view')
+      const r = v.getBoundingClientRect()
+      v.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * ${rel}, clientY: r.top + r.height / 2 }))
+      return 'ok'
+    })()`)
+    const f0 = await frac()
+    await clickRel(0.1); await delay(900)
+    const f1 = await frac()
+    await clickRel(0.9); await delay(900)
+    const f2 = await frac()
+    log(`mobile click zones: ${f0} -> ${f1} (left25%) -> ${f2} (right25%)`)
+    if (!(f1 > f0)) fail('モバイル: 左25%クリックでページが進まない')
+    if (!(f2 < f1)) fail('モバイル: 右25%クリックでページが戻らない')
+
+    // 設定パネルが画面内に収まる
+    await evalJS(`document.getElementById('btn-settings').click(); 'ok'`)
+    await delay(500)
+    const panel = JSON.parse(await evalJS(`JSON.stringify((() => {
+      const r = document.getElementById('settings').getBoundingClientRect()
+      return { left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), vw: window.innerWidth }
+    })())`))
+    log('mobile settings panel', panel)
+    if (panel.left < -1 || panel.right > panel.vw + 1)
+      fail(`設定パネルが画面外: ${JSON.stringify(panel)}`)
+
+    bidi.close()
+    log(process.exitCode ? 'NG' : 'OK')
+    return
+  }
 
   const snapshot = () => evalJS(`JSON.stringify((() => {
     const v = document.querySelector('foliate-view')
@@ -349,4 +503,8 @@ const main = async () => {
   log(process.exitCode ? 'NG' : 'OK')
 }
 
-main().catch(e => { fail(e.stack ?? String(e)) })
+main().catch(e => { fail(e.stack ?? String(e)) }).finally(() => {
+  // WebSocket のクローズ待ち等でハングしないよう、明示的に終了する。
+  // ('exit' ハンドラで子プロセスは片付く)
+  setTimeout(() => process.exit(process.exitCode ?? 0), 100)
+})
