@@ -155,9 +155,9 @@ const main = async () => {
       columnCount: v.renderer.getAttribute('max-column-count'),
       maxInlineSize: v.renderer.getAttribute('max-inline-size'),
       maxBlockSize: v.renderer.getAttribute('max-block-size'),
-      blockAxisPx: doc ? (cs?.writingMode?.startsWith('vertical')
-        ? Math.round(doc.documentElement.getBoundingClientRect().width)
-        : Math.round(doc.documentElement.getBoundingClientRect().height)) : null,
+      columnWidthPx: doc ? getComputedStyle(doc.documentElement).columnWidth : null,
+      rootW: doc ? Math.round(doc.documentElement.getBoundingClientRect().width) : null,
+      rootH: doc ? Math.round(doc.documentElement.getBoundingClientRect().height) : null,
       pages: v.renderer.pages,
       bodyText: doc ? doc.body.textContent.slice(0, 24) : '',
     }
@@ -205,6 +205,26 @@ const main = async () => {
   log('vertical spread', s)
   if (!(parseFloat(s.maxBlockSize) > singleBlock * 1.5))
     fail(`縦組みの見開きで幅が広がらない: single=${singleBlock} spread=${s.maxBlockSize}`)
+
+  // B: 縦組みの段数を 2 にする (shadow 経由で --_max-column-count-portrait を設定)
+  const aspect1 = parseFloat(s.columnWidthPx) / s.rootH
+  const useB = await evalJS(`(() => {
+    const r = document.querySelector('input[name="radio-page-verticalColumns"][value="2"]')
+    if (!r) return 'no-control'
+    r.click(); return 'clicked'
+  })()`)
+  if (useB !== 'clicked') fail(`段数の切替コントロールが見つからない: ${useB}`)
+  await delay(2000)
+  s = JSON.parse(await snapshot())
+  const aspect2 = parseFloat(s.columnWidthPx) / s.rootH
+  log('vertical columns=2 (B)', s)
+  log(`aspect d=1: ${aspect1.toFixed(3)} -> d=2: ${aspect2.toFixed(3)}`)
+  if (!(aspect2 < aspect1 * 0.8))
+    fail(`B を有効にしても面が縦長にならない: ${aspect1} -> ${aspect2}`)
+  const shotB = await bidi.send('browsingContext.captureScreenshot', { context })
+  const outB = OUT.replace(/\.png$/, '') + '-b.png'
+  await fs.writeFile(outB, Buffer.from(shotB.data, 'base64'))
+  log('screenshot B ->', outB)
 
   bidi.close()
   log(process.exitCode ? 'NG' : 'OK')

@@ -125,6 +125,24 @@ test('縦組みはコンテナ幅の設定で見開き/単ページを切り替�
   assert.ok(parseFloat(spread['max-block-size']) > parseFloat(single['max-block-size']))
 })
 
+test('縦組みの段数 (verticalColumns) で面高が変わり行数は維持される', () => {
+  const base = {
+    writingMode: 'vertical-rl',
+    font: { size: 20, lineHeight: 2, letterSpacing: 0 },
+    page: { linesPerPage: 10, charsPerLine: 20, gap: 10, spread: 'single' },
+  }
+  const d1 = toRenderOptions(normalizeSpec({ ...base, page: { ...base.page, verticalColumns: 1 } }).spec)
+  const d2 = toRenderOptions(normalizeSpec({ ...base, page: { ...base.page, verticalColumns: 2 } }).spec)
+  const h = 0.1 / 0.9
+  // 1面幅 = 10行 × 行送り40 = 400 → 単ページの幅は d に依存しない
+  assert.equal(d1['max-block-size'], '400px')
+  assert.equal(d2['max-block-size'], '400px')
+  // 面高 = 400 / (1 - d·h)
+  assert.equal(d1['max-inline-size'], `${Math.round(400 / (1 - h))}px`)
+  assert.equal(d2['max-inline-size'], `${Math.round(400 / (1 - 2 * h))}px`)
+  assert.ok(parseFloat(d2['max-inline-size']) > parseFloat(d1['max-inline-size']))
+})
+
 test('requiresReload は組方向の変化のみ true', () => {
   const a = normalizeSpec({ writingMode: 'vertical-rl' }).spec
   const b = normalizeSpec({ writingMode: 'horizontal-tb' }).spec

@@ -135,6 +135,7 @@ export class App {
       this.#reader = new Reader(this.els.view)
       this.#reader.addEventListener('relocate', ({ detail }) => this.#onRelocate(detail))
       this.#reader.addEventListener('load', () => this.#ensureProgressVisibility())
+      this.#reader.addEventListener('layout-warning', ({ detail }) => this.#toast(detail.message, 'error'))
     }
     await this.#reader.open(source, this.#spec)
     this.#onOpened()
@@ -214,8 +215,15 @@ export class App {
     )
     for (const r of RANGES.filter(r => r.path.startsWith('page.')))
       section.append(this.#rangeField(r))
+    section.append(this.#radioField('縦組みの段数', 'page.verticalColumns', [
+      { value: '1', label: '1（ほぼ正方）' },
+      { value: '2', label: '2（縦長）' },
+      { value: '3', label: '3' },
+    ]))
     section.append(el('p', { class: 'notice' },
-      '字詰め・行数が出版社の組式にあたる数値です。行数は、横組みでは本文の高さ、縦組みでは本文の幅として組版されます（見開き/単ページはこの幅・高さで切り替わります）。画面が小さい場合は表示できる行数までに制限されます。縦組みは描画ライブラリの制約により面の縦横比が字詰めと行数から自動決定されるため、字詰めは行数に連動します（参考値）。'))
+      '字詰め・行数が組式にあたる数値です。行数は横組みでは高さ、縦組みでは幅として組版されます（見開き/単ページはこの幅・高さで切替）。画面が小さい場合は表示できる行数までに制限されます。'))
+    section.append(el('p', { class: 'notice' },
+      '縦組みは描画ライブラリの都合で「面幅＝面高−段間」となり、縦横比は段数でのみ変わります。段数=1 でほぼ正方形、2 以上で縦長になります（字詰めは行数に連動し、独立指定はできません）。'))
     return section
   }
 
@@ -340,7 +348,7 @@ export class App {
         }
       } else if (c.type === 'radio') {
         const v = getPath(spec, c.path)
-        c.input.checked = (v === c.value)
+        c.input.checked = String(v) === String(c.value)
       }
     }
     if (this.#presetSelect) {

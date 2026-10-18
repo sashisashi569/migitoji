@@ -164,22 +164,34 @@ export const toRenderOptions = spec => {
   const h = g / (1 - g) // 実際の gap は size の h 倍
   const blockCount = Math.max(1, Math.round(effectiveColumnCount(page)))
 
-  let inlineSize, blockSize
-  if (vertical) {
-    // 横長画面では段数が1として扱われるため、gap 補正も1段で計算する。
-    const factor = 1 - h
-    const columnWidth = page.linesPerPage * lineAdvance // = 1面の幅
-    inlineSize = columnWidth / (factor > 0.05 ? factor : 0.05)
-    // コンテナ幅 = N 列ぶん（列幅 + 段間）ちょうど
-    blockSize = inlineSize * (blockCount - h)
-  } else {
-    const factor = 1 - blockCount * h
-    inlineSize = (page.charsPerLine * charAdvance) / (factor > 0.05 ? factor : 0.05)
-    blockSize = page.linesPerPage * lineAdvance
-  }
-
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(v)))
 
+  if (vertical) {
+    // 縦組み: paginator では (横長画面で) 面幅 = max-inline-size − gap、
+    // 面高(インライン長) = max-inline-size × d − gap となり、d (= --_max-column-count-portrait)
+    // でのみ縦横比を変えられる。d は reader 側で shadow 経由で設定する。
+    // 行数を満たすよう面高を逆算する:
+    //   面幅 = 行数 × 行送り = max-inline-size (1 − d·h)
+    const d = Math.max(1, Math.min(4, Math.round(page.verticalColumns ?? 1)))
+    const columnWidth = page.linesPerPage * lineAdvance
+    const denom = 1 - d * h
+    const inlineSize = columnWidth / (denom > 0.05 ? denom : 0.05)
+    const gapPx = h * d * inlineSize // g/(1-g) × size, size = d·max-inline-size
+    const gapPercent = inlineSize > 0 ? 100 * gapPx / (d * inlineSize + gapPx) : page.gap
+    const blockSize = blockCount * columnWidth + (blockCount - 1) * gapPx
+    return {
+      flow: 'paginated',
+      gap: `${clamp(gapPercent, 0, 45)}%`,
+      margin: `${Math.round(page.margin)}px`,
+      'max-inline-size': `${clamp(inlineSize, 120, 8000)}px`,
+      'max-block-size': `${clamp(blockSize, 120, 8000)}px`,
+      'max-column-count': String(blockCount),
+    }
+  }
+
+  const factor = 1 - blockCount * h
+  const inlineSize = (page.charsPerLine * charAdvance) / (factor > 0.05 ? factor : 0.05)
+  const blockSize = page.linesPerPage * lineAdvance
   return {
     flow: 'paginated',
     gap: `${page.gap}%`,
